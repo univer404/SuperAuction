@@ -19,7 +19,7 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - `/ah mine` opens the player's listing menu.
 - `/ah search <text>` searches listing item and seller names.
 - Tagged GUI buttons, cancelled inventory clicks/drags, item detail view, paging, and chat search.
-- YAML persistence uses a temporary file and atomic replacement where supported.
+- YAML persistence uses a temporary file, keeps an `auctions.yml.bak` copy before replacement, and uses atomic replacement where supported.
 - Invalid YAML or malformed escrow records now stop plugin startup instead of being silently skipped and later overwritten.
 - Search length and auction browser page size honor the bounded configuration values.
 - Admin stats report pending listings, pending returns, and records flagged for manual review.
