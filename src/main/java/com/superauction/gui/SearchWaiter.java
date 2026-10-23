@@ -12,9 +12,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /** One-shot chat search capture; chat is cancelled only for players actively searching. */
-final class SearchWaiter implements Listener {
+public final class SearchWaiter implements Listener {
     private static final Map<UUID, Consumer<String>> WAITING = new ConcurrentHashMap<>();
-    private SearchWaiter() {}
+    public SearchWaiter() {}
     static void arm(JavaPlugin plugin, UUID playerId, Consumer<String> callback) {
         WAITING.put(playerId, callback);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> WAITING.remove(playerId), 20L * 30);
