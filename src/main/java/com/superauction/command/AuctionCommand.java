@@ -4,6 +4,7 @@ import com.superauction.SuperAuction;
 import com.superauction.auction.AuctionService;
 import com.superauction.auction.Listing;
 import com.superauction.gui.AuctionMenu;
+import com.superauction.util.PriceParser;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -69,7 +70,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                 if (!player.hasPermission("superauction.sell")) { player.sendMessage("§cYou don't have permission."); return true; }
                 if (args.length < 2) { player.sendMessage("§cUsage: /ah sell <price>"); return true; }
                 try {
-                    double price = parsePrice(args[1]);
+                    double price = PriceParser.parse(args[1]);
                     double min = plugin.getConfig().getDouble("listings.minimum-price", 1);
                     double max = plugin.getConfig().getDouble("listings.maximum-price", 1_000_000_000);
                     if (price < min || price > max) throw new IllegalArgumentException("Price must be between " + min + " and " + max + ".");
@@ -196,16 +197,6 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
         }
-    }
-
-    private static double parsePrice(String input) {
-        String value = input.toLowerCase(Locale.ROOT).trim();
-        double multiplier = 1;
-        if (value.endsWith("k")) { multiplier = 1_000; value = value.substring(0, value.length() - 1); }
-        else if (value.endsWith("m")) { multiplier = 1_000_000; value = value.substring(0, value.length() - 1); }
-        double price = Double.parseDouble(value) * multiplier;
-        if (!Double.isFinite(price) || price <= 0) throw new IllegalArgumentException("Price must be a positive number.");
-        return price;
     }
 
     @Override
