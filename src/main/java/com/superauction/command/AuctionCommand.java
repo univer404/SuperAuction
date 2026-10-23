@@ -29,7 +29,14 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            if (sender instanceof Player player) { menus.openBrowse(player, "", 0); return true; }
+            if (sender instanceof Player player) {
+                if (!player.hasPermission("superauction.use")) {
+                    player.sendMessage("§cYou don't have permission.");
+                    return true;
+                }
+                menus.openBrowse(player, "", 0);
+                return true;
+            }
             sender.sendMessage("§b§lSuperAuction §8» §7Use §f/ah help §7to see commands.");
             List<Listing> listings = auctions.activeListings("");
             sender.sendMessage("§7Active listings: §f" + listings.size());
@@ -52,6 +59,10 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         Player player = sender instanceof Player p ? p : null;
+        if (!sub.equals("admin") && player != null && !player.hasPermission("superauction.use")) {
+            player.sendMessage("§cYou don't have permission.");
+            return true;
+        }
         switch (sub) {
             case "sell" -> {
                 if (player == null) return true;
