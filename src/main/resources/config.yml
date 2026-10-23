@@ -1,7 +1,8 @@
 language: en
 
 storage:
-  # yaml is the initial backend. sqlite/mysql are reserved until their implementations are enabled.
+  # Supported: yaml or sqlite. MySQL is not implemented; unsupported values stop startup.
+  # SQLite uses plugins/SuperAuction/auctions.db and does not automatically import auctions.yml.
   type: yaml
   safe-fallback: false
 
