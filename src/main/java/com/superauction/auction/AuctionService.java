@@ -1,0 +1,77 @@
+package com.superauction.auction;
+
+import com.superauction.storage.YamlAuctionStore;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+public final class AuctionService implements Listener {
+    private final JavaPlugin plugin;
+    private final YamlAuctionStore store;
+
+    public AuctionService(JavaPlugin plugin, YamlAuctionStore store) {
+        this.plugin = plugin;
+        this.store = store;
+    }
+
+    public synchronized Listing createListing(Player seller, double price) throws IOException {
+        if (!Double.isFinite(price) || price <= 0) throw new IllegalArgumentException("Price must be a positive finite number.");
+        var hand = seller.getInventory().getItemInMainHand();
+        if (hand.getType().isAir()) throw new IllegalArgumentException("Hold the item you want to sell in your main hand.");
+        if (plugin.getConfig().getStringList("listings.blacklist").contains(hand.getType().name())) {
+            throw new IllegalArgumentException("That item cannot be listed.");
+        }
+        long activeCount = store.all().stream().filter(l -> l.sellerId().equals(seller.getUniqueId()) && l.status() == Listing.Status.ACTIVE).count();
+        if (activeCount >= plugin.getConfig().getInt("listings.default-limit", 10)) throw new IllegalArgumentException("You have reached your listing limit.");
+
+        var securedItem = hand.clone();
+        long now = System.currentTimeMillis();
+        Listing listing = new Listing(UUID.randomUUID(), seller.getUniqueId(), seller.getName(), securedItem,
+                price, now, now + plugin.getConfig().getLong("listings.default-duration-hours", 24) * 3_600_000L, Listing.Status.ACTIVE);
+        // Persist the escrow copy first. If the write fails, the seller's hand is untouched.
+        store.add(listing);
+        try {
+            store.save();
+        } catch (IOException exception) {
+            store.remove(listing.id());
+            throw exception;
+        }
+        seller.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.AIR));
+        seller.sendMessage("§aListed §f" + securedItem.getAmount() + "x " + niceName(securedItem.getType()) + " §afor §e" + price + "§a.");
+        return listing;
+    }
+
+    public List<Listing> activeListings(String query) {
+        String normalized = query == null ? "" : query.toLowerCase(Locale.ROOT);
+        return store.all().stream()
+                .filter(l -> l.status() == Listing.Status.ACTIVE && l.expiresAt() > System.currentTimeMillis())
+                .filter(l -> normalized.isBlank() || l.sellerName().toLowerCase(Locale.ROOT).contains(normalized)
+                        || niceName(l.item().getType()).toLowerCase(Locale.ROOT).contains(normalized)
+                        || l.item().getType().name().toLowerCase(Locale.ROOT).contains(normalized))
+                .sorted(Comparator.comparingLong(Listing::createdAt).reversed()).toList();
+    }
+
+    public List<Listing> mine(UUID playerId) {
+        return store.all().stream().filter(l -> l.sellerId().equals(playerId)).toList();
+    }
+
+    public void save() throws IOException { store.save(); }
+
+    public static String niceName(Material material) {
+        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
+        StringBuilder result = new StringBuilder();
+        for (String part : parts) {
+            if (!result.isEmpty()) result.append(' ');
+            result.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return result.toString();
+    }
+}
