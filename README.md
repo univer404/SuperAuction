@@ -29,13 +29,14 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - Append-only transaction journal foundation with forced disk writes, validated state transitions, fail-closed loading, and tests.
 - Personal `/ah history` output backed by the journal, plus `/ah admin transaction <id>` and journal review counts.
 - Vault economy provider detection; it does not activate purchases.
+- Optional PlaceholderAPI expansion: `%superauction_active_listings%`, `%superauction_total_records%`, `%superauction_player_listings%`, and `%superauction_player_transactions%`.
 
 ## Important limitations — not production-ready
 
 This snapshot is a work in progress and **must not be used on a live economy server**.
 
 - Purchase is deliberately disabled in the GUI. No money is withdrawn and no item is delivered. This is intentional because Vault operations and file writes cannot be made atomic by this implementation.
-- Purchase execution and full transaction reconciliation are not implemented; the journal is groundwork only and currently has no real purchases to display. Automatic pending-item claims, robust crash-safe return delivery, actionable recovery tooling, SQLite, MySQL, and PlaceholderAPI are not implemented.
+- Purchase execution and full transaction reconciliation are not implemented; the journal is groundwork only and currently has no real purchases to display. Automatic pending-item claims, robust crash-safe return delivery, actionable recovery tooling, SQLite and MySQL are not implemented. PlaceholderAPI placeholders are available when PlaceholderAPI is installed, but player transaction counts will remain zero until purchase processing is enabled.
 - The current cancellation delivery sequence is not crash-atomic between inventory mutation and the YAML status write. Treat pending-return records as requiring manual backup/review.
 - A listing confirmation interrupted at an ambiguous point is kept non-purchasable and flagged for review rather than silently deleting its escrow record.
 - The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
