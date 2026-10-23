@@ -15,6 +15,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.block.ShulkerBox;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.text.DecimalFormat;
@@ -156,8 +158,11 @@ public final class AuctionMenu implements Listener {
         if(action==null && meta.getPersistentDataContainer().has(listingKey,PersistentDataType.STRING)) {
             try {
                 UUID id=UUID.fromString(meta.getPersistentDataContainer().get(listingKey,PersistentDataType.STRING));
-                if(holder.type.equals("browse")) openInspect(player,id);
-                else if(holder.type.equals("mine")) {
+                if(holder.type.equals("browse")) {
+                    Listing listing = service.find(id);
+                    if (event.isRightClick() && listing != null && isShulker(listing.item())) openShulkerPreview(player, listing.item());
+                    else openInspect(player,id);
+                } else if(holder.type.equals("mine")) {
                     Listing listing=service.find(id);
                     if(listing!=null && listing.sellerId().equals(player.getUniqueId())) openManage(player,id);
                 }
@@ -209,6 +214,26 @@ public final class AuctionMenu implements Listener {
             }
             case "close" -> player.closeInventory();
         }
+    }
+
+    private static boolean isShulker(ItemStack item) {
+        return item.getType().name().endsWith("_SHULKER_BOX");
+    }
+
+    private void openShulkerPreview(Player player, ItemStack shulkerItem) {
+        if (!(shulkerItem.getItemMeta() instanceof BlockStateMeta meta)
+                || !(meta.getBlockState() instanceof ShulkerBox box)) {
+            player.sendMessage(color("&cThis shulker box could not be previewed safely."));
+            return;
+        }
+        Inventory preview = Bukkit.createInventory(new MenuHolder("shulker-preview", "", 0), 54, color("&0Shulker Contents"));
+        ItemStack[] contents = box.getInventory().getContents();
+        for (int slot = 0; slot < Math.min(27, contents.length); slot++) {
+            ItemStack content = contents[slot];
+            if (content != null && !content.getType().isAir()) preview.setItem(slot, content.clone());
+        }
+        button(preview, 49, Material.BARRIER, "&cClose", "close", null, 0);
+        player.openInventory(preview);
     }
 
     private void openManage(Player player, UUID id) {
