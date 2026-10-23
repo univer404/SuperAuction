@@ -156,6 +156,21 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                         sender.sendMessage("§7Created: §f" + java.time.Instant.ofEpochMilli(listing.createdAt()));
                         sender.sendMessage("§7Expires: §f" + java.time.Instant.ofEpochMilli(listing.expiresAt()));
                     } catch (IllegalArgumentException exception) { sender.sendMessage("§cInvalid listing UUID."); }
+                } else if (args.length >= 3 && args[1].equalsIgnoreCase("transaction")) {
+                    if (!sender.hasPermission("superauction.admin.inspect")) { sender.sendMessage("§cYou don't have permission."); return true; }
+                    try {
+                        var transaction = plugin.getTransactionJournal().find(java.util.UUID.fromString(args[2]));
+                        if (transaction == null) { sender.sendMessage("§cTransaction not found."); return true; }
+                        sender.sendMessage("§bTransaction §f" + transaction.id());
+                        sender.sendMessage("§7Buyer: §f" + transaction.buyerId());
+                        sender.sendMessage("§7Seller: §f" + transaction.sellerId());
+                        sender.sendMessage("§7Listing: §f" + transaction.listingId());
+                        sender.sendMessage("§7Amount: §a" + transaction.amount());
+                        sender.sendMessage("§7Stage: §f" + transaction.stage());
+                        sender.sendMessage("§7Updated: §f" + java.time.Instant.ofEpochMilli(transaction.updatedAt()));
+                    } catch (IllegalArgumentException exception) {
+                        sender.sendMessage("§cInvalid transaction UUID.");
+                    }
                 } else if (args.length >= 2 && args[1].equalsIgnoreCase("recover")) {
                     if (!sender.hasPermission("superauction.admin.recover")) { sender.sendMessage("§cYou don't have permission."); return true; }
                     var pendingRecords = auctions.allListings().stream().filter(l -> l.status() == Listing.Status.PENDING || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).toList();
@@ -166,6 +181,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§b/ah admin reload §7Reload configuration");
                     sender.sendMessage("§b/ah admin stats §7Show listing count");
                     sender.sendMessage("§b/ah admin inspect <listingId> §7Inspect a listing");
+                    sender.sendMessage("§b/ah admin transaction <transactionId> §7Inspect transaction journal");
                     sender.sendMessage("§b/ah admin recover §7Review recoverable records");
                 }
                 return true;
