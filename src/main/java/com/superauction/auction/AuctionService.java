@@ -118,7 +118,8 @@ public final class AuctionService implements Listener {
         if (listing.status() != Listing.Status.ACTIVE) {
             throw new IllegalArgumentException("Only active listings can be cancelled.");
         }
-        // Persist a non-purchasable return state before attempting delivery.
+        // RETURN_PENDING means delivery has not started. Persist a distinct state before
+        // touching the inventory so a crash can never be mistaken for an undelivered return.
         listing.setStatus(Listing.Status.RETURN_PENDING);
         store.save();
         ItemStack returnedItem = listing.item();
@@ -127,13 +128,24 @@ public final class AuctionService implements Listener {
             seller.sendMessage("§eYour inventory cannot fit this item. It remains in a pending return record.");
             return;
         }
+
+        // Once this state is durable, recovery must be manual: after a crash we cannot know
+        // whether inventory mutation happened, so automatic retry could duplicate the item.
+        listing.setStatus(Listing.Status.RETURN_DELIVERY_STARTED);
+        store.save();
         seller.getInventory().addItem(returnedItem);
         listing.setStatus(Listing.Status.RETURNED);
         try {
             store.save();
         } catch (IOException exception) {
-            // The write outcome is ambiguous after inventory mutation. Do not attempt another automatic delivery.
+            // The durable state remains RETURN_DELIVERY_STARTED if this save fails.
+            // Never automatically retry an ambiguous delivery.
             listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+            try {
+                store.save();
+            } catch (IOException reviewException) {
+                exception.addSuppressed(reviewException);
+            }
             throw exception;
         }
     }
