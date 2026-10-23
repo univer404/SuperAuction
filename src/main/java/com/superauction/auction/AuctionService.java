@@ -270,6 +270,19 @@ public final class AuctionService implements Listener {
         return expired;
     }
 
+    /** Startup recovery is intentionally review-only; it never re-delivers or re-charges. */
+    public synchronized int markInterruptedPurchasesForReview() throws IOException {
+        int changed = 0;
+        for (Listing listing : store.all()) {
+            if (listing.status() == Listing.Status.PENDING_PURCHASE) {
+                listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+                changed++;
+            }
+        }
+        if (changed > 0) store.save();
+        return changed;
+    }
+
     public void save() throws IOException { store.save(); }
 
     public static String niceName(Material material) {
