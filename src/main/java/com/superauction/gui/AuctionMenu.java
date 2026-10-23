@@ -97,7 +97,7 @@ public final class AuctionMenu implements Listener {
 
     public void openMine(Player player, int page) {
         List<Listing> listings = service.mine(player.getUniqueId()).stream()
-                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING)
+                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW)
                 .toList();
         Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), 54, color("&0My Auction Listings"));
         int safePage = Math.max(0, Math.min(page, Math.max(0, (listings.size()-1)/45)));
