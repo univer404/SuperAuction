@@ -1,6 +1,6 @@
 package com.superauction.auction;
 
-import com.superauction.storage.YamlAuctionStore;
+import com.superauction.storage.AuctionStore;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -16,9 +16,9 @@ import java.util.UUID;
 
 public final class AuctionService implements Listener {
     private final JavaPlugin plugin;
-    private final YamlAuctionStore store;
+    private final AuctionStore store;
 
-    public AuctionService(JavaPlugin plugin, YamlAuctionStore store) {
+    public AuctionService(JavaPlugin plugin, AuctionStore store) {
         this.plugin = plugin;
         this.store = store;
     }
