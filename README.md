@@ -29,19 +29,19 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - Price parser unit tests and a GitHub Actions Maven verification workflow.
 - Append-only transaction journal foundation with forced disk writes, validated state transitions, fail-closed loading, and tests.
 - Personal `/ah history` output backed by the journal, plus `/ah admin transaction <id>` and journal review counts.
-- Vault economy provider detection; it does not activate purchases.
+- Vault purchase flow with durable listing reservation, buyer withdrawal, item delivery, seller payout, and append-only transaction stages; ambiguous failures are flagged for manual review instead of automatic retries.
 - Optional PlaceholderAPI expansion: `%superauction_active_listings%`, `%superauction_total_records%`, `%superauction_player_listings%`, and `%superauction_player_transactions%`.
 
 ## Production validation status
 
-Automated CI verifies compilation, unit tests, and the shaded JAR contents. This is not a substitute for a full live-server release test. Before enabling on a live economy server, verify YAML and SQLite startup on the exact Paper/Purpur build, list/cancel/expire flows, full-inventory handling, and recovery after forced process termination. Purchases remain disabled until economy and item delivery can be reconciled safely.
+Automated CI verifies compilation, unit tests, and the shaded JAR contents. This is not a substitute for a full live-server release test. Before enabling on a live economy server, verify YAML and SQLite startup on the exact Paper/Purpur build, list/cancel/expire flows, full-inventory handling, and recovery after forced process termination. Purchase flow now has conservative runtime handling, but it still requires live Paper/Purpur testing and economy-provider verification before production use.
 
 ## Important limitations — not production-ready
 
 This snapshot is a work in progress and **must not be used on a live economy server**.
 
-- Purchase is deliberately disabled in the GUI. No money is withdrawn and no item is delivered. This is intentional because Vault operations and file writes cannot be made atomic by this implementation.
-- Purchase execution and full transaction reconciliation are not implemented; the journal is groundwork only and currently has no real purchases to display. Automatic pending-item claims and complete actionable recovery tooling are not implemented. Return delivery uses a conservative manual-review state when its outcome is ambiguous. MySQL is not implemented. PlaceholderAPI placeholders are available when PlaceholderAPI is installed, but player transaction counts will remain zero until purchase processing is enabled.
+- Purchase processing is implemented for the normal online path using Vault. Vault economy changes, Minecraft inventory delivery, and disk writes are separate systems and cannot be made one atomic transaction. If a step is uncertain, the listing/transaction is reserved for administrator review; the plugin does not automatically retry or blindly refund.
+- Full automated reconciliation, idempotent Vault refunds/payouts, and automatic pending-item claims are not implemented. Interrupted purchases are marked for manual review at startup and must be reconciled by an administrator. MySQL is not implemented. PlaceholderAPI placeholders are available when PlaceholderAPI is installed.
 - Return delivery now writes `RETURN_DELIVERY_STARTED` durably before touching the player inventory. If a crash or save failure occurs after that point, the record is exposed for manual review and is never automatically redelivered. This avoids automatic duplication, but cannot guarantee exactly-once delivery across Minecraft inventory and disk writes; an administrator must reconcile ambiguous records.
 - A listing confirmation interrupted at an ambiguous point is kept non-purchasable and flagged for review rather than silently deleting its escrow record.
 - The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
@@ -54,7 +54,7 @@ This snapshot is a work in progress and **must not be used on a live economy ser
 - `/ah mine` — view your active and pending-return listings.
 - `/ah search <text>` — search listings.
 - `/ah view <player>` — view listings matching a seller name.
-- `/ah history` — show up to 10 journal transactions involving you (will be empty until purchase processing is implemented).
+- `/ah history` — show up to 10 journal transactions involving you.
 - `/ah admin reload` — reload Bukkit configuration.
 
 ## Permissions
@@ -74,4 +74,4 @@ YAML and SQLite listing stores are implemented. YAML data is stored in `plugins/
 
 ## Safety stance
 
-Features that could charge money without a reliable recovery journal are disabled rather than simulated. Before a production release, implement and test a durable purchase coordinator, idempotent economy reconciliation, recoverable item delivery, and crash-safe returns. SQLite support covers listing persistence only; it does not make inventory delivery and Vault transactions atomic. A Paper/Purpur runtime test matrix is still required.
+Purchase processing uses a durable journal and conservative manual-review states, but this does not make Vault calls and inventory mutations atomic. Do not deploy to a live economy until CI passes and forced-crash tests have been completed on the exact Paper/Purpur build and economy provider. Review all `NEEDS_REVIEW` transactions and `FAILED_REQUIRES_REVIEW` listings manually. SQLite support covers listing persistence only; it does not make inventory delivery and Vault transactions atomic.
