@@ -104,6 +104,20 @@ public final class AuctionService implements Listener {
         return store.all().stream().filter(l -> l.sellerId().equals(playerId)).toList();
     }
 
+    /** Marks expired listings as pending returns; item data stays in escrow until safely recovered. */
+    public synchronized int expireListings() throws IOException {
+        int expired = 0;
+        long now = System.currentTimeMillis();
+        for (Listing listing : store.all()) {
+            if (listing.status() == Listing.Status.ACTIVE && listing.expiresAt() <= now) {
+                listing.setStatus(Listing.Status.RETURN_PENDING);
+                expired++;
+            }
+        }
+        if (expired > 0) store.save();
+        return expired;
+    }
+
     public void save() throws IOException { store.save(); }
 
     public static String niceName(Material material) {
