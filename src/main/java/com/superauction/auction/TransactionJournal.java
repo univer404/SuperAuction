@@ -121,6 +121,20 @@ public final class TransactionJournal {
         return next;
     }
 
+    /** Marks unfinished operations for human reconciliation; never replays external side effects. */
+    public synchronized int markIncompleteForReview() throws IOException {
+        int changed = 0;
+        for (Transaction transaction : List.copyOf(latest.values())) {
+            if (transaction.stage() == Stage.COMPLETE || transaction.stage() == Stage.ABORTED
+                    || transaction.stage() == Stage.NEEDS_REVIEW) {
+                continue;
+            }
+            advance(transaction.id(), Stage.NEEDS_REVIEW);
+            changed++;
+        }
+        return changed;
+    }
+
     public synchronized Transaction find(UUID transactionId) {
         return latest.get(transactionId);
     }
