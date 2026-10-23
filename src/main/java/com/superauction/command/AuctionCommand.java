@@ -3,6 +3,7 @@ package com.superauction.command;
 import com.superauction.SuperAuction;
 import com.superauction.auction.AuctionService;
 import com.superauction.auction.Listing;
+import com.superauction.gui.AuctionMenu;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -17,15 +18,18 @@ import java.util.Locale;
 public final class AuctionCommand implements CommandExecutor, TabCompleter {
     private final SuperAuction plugin;
     private final AuctionService auctions;
+    private final AuctionMenu menus;
 
     public AuctionCommand(SuperAuction plugin, AuctionService auctions) {
         this.plugin = plugin;
         this.auctions = auctions;
+        this.menus = new AuctionMenu(plugin, auctions);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
+            if (sender instanceof Player player) { menus.openBrowse(player, "", 0); return true; }
             sender.sendMessage("§b§lSuperAuction §8» §7Use §f/ah help §7to see commands.");
             List<Listing> listings = auctions.activeListings("");
             sender.sendMessage("§7Active listings: §f" + listings.size());
@@ -67,6 +71,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
             }
             case "mine" -> {
                 if (player == null) return true;
+                menus.openMine(player, 0);
                 var mine = auctions.mine(player.getUniqueId());
                 player.sendMessage("§b§lYour Listings §7(" + mine.size() + ")");
                 mine.forEach(l -> player.sendMessage("§7" + l.item().getAmount() + "x " + AuctionService.niceName(l.item().getType())
@@ -74,6 +79,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "search" -> {
+                if (player != null && args.length == 1) { menus.openBrowse(player, "", 0); return true; }
                 String query = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
                 var found = auctions.activeListings(query);
                 sender.sendMessage("§bSearch results §7(" + found.size() + ")");
