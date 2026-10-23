@@ -36,7 +36,8 @@ public final class AuctionService implements Listener {
         }
         List<Listing> existing = store.all();
         long activeCount = existing.stream()
-                 .filter(l -> l.sellerId().equals(seller.getUniqueId())\n                        && (l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.PENDING))
+                 .filter(l -> l.sellerId().equals(seller.getUniqueId())
+                        && (l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.PENDING))
                 .count();
         if (activeCount >= Math.max(0, plugin.getConfig().getInt("listings.default-limit", 10))) {
             throw new IllegalArgumentException("You have reached your listing limit.");
