@@ -99,7 +99,26 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             case "history" -> {
-                sender.sendMessage("§cTransaction history is not implemented in this foundation build.");
+                if (player == null) {
+                    sender.sendMessage("§cThis command requires a player.");
+                    return true;
+                }
+                if (!player.hasPermission("superauction.history")) {
+                    player.sendMessage("§cYou don't have permission.");
+                    return true;
+                }
+                var history = plugin.getTransactionJournal().all().stream()
+                        .filter(t -> t.buyerId().equals(player.getUniqueId()) || t.sellerId().equals(player.getUniqueId()))
+                        .limit(10)
+                        .toList();
+                player.sendMessage("§b§lYour Auction Transaction History");
+                if (history.isEmpty()) {
+                    player.sendMessage("§7No recorded transactions yet.");
+                } else {
+                    history.forEach(t -> player.sendMessage("§7" + t.id().toString().substring(0, 8)
+                            + " §f" + t.amount() + " §7" + t.stage()
+                            + (t.buyerId().equals(player.getUniqueId()) ? " §8(buyer)" : " §8(seller)")));
+                }
                 return true;
             }
             case "view" -> {
