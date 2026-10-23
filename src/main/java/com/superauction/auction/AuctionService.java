@@ -30,13 +30,27 @@ public final class AuctionService implements Listener {
         if (plugin.getConfig().getStringList("listings.blacklist").contains(hand.getType().name())) {
             throw new IllegalArgumentException("That item cannot be listed.");
         }
-        long activeCount = store.all().stream().filter(l -> l.sellerId().equals(seller.getUniqueId()) && l.status() == Listing.Status.ACTIVE).count();
-        if (activeCount >= plugin.getConfig().getInt("listings.default-limit", 10)) throw new IllegalArgumentException("You have reached your listing limit.");
+        List<Listing> existing = store.all();
+        long activeCount = existing.stream()
+                .filter(l -> l.sellerId().equals(seller.getUniqueId()) && l.status() == Listing.Status.ACTIVE)
+                .count();
+        if (activeCount >= Math.max(0, plugin.getConfig().getInt("listings.default-limit", 10))) {
+            throw new IllegalArgumentException("You have reached your listing limit.");
+        }
+        long serverLimit = Math.max(1, plugin.getConfig().getLong("listings.maximum-server-listings", 10_000));
+        long serverActiveCount = existing.stream().filter(l -> l.status() == Listing.Status.ACTIVE).count();
+        if (serverActiveCount >= serverLimit) {
+            throw new IllegalArgumentException("The auction house has reached its server-wide listing limit.");
+        }
+        long durationHours = plugin.getConfig().getLong("listings.default-duration-hours", 24);
+        if (durationHours < 1 || durationHours > 8_760) {
+            throw new IllegalArgumentException("Listing duration configuration must be between 1 and 8760 hours.");
+        }
 
         var securedItem = hand.clone();
         long now = System.currentTimeMillis();
         Listing listing = new Listing(UUID.randomUUID(), seller.getUniqueId(), seller.getName(), securedItem,
-                price, now, now + plugin.getConfig().getLong("listings.default-duration-hours", 24) * 3_600_000L, Listing.Status.PENDING);
+                price, now, now + durationHours * 3_600_000L, Listing.Status.PENDING);
         // Persist escrow as PENDING first: a crash cannot expose this listing for purchase.
         store.add(listing);
         try {
