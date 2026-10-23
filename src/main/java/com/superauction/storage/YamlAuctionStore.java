@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 /** YAML store with temporary-file writes; never replaces the data file until the new file is complete. */
-public final class YamlAuctionStore {
+public final class YamlAuctionStore implements AuctionStore {
     private final JavaPlugin plugin;
     private final Path file;
     private final Path tempFile;
