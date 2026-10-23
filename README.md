@@ -19,7 +19,10 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - `/ah mine` opens the player's listing menu.
 - `/ah search <text>` searches listing item and seller names.
 - Tagged GUI buttons, cancelled inventory clicks/drags, item detail view, paging, and chat search.
-- YAML persistence uses a temporary file and replacement.
+- YAML persistence uses a temporary file and atomic replacement where supported.
+- Invalid YAML or malformed escrow records now stop plugin startup instead of being silently skipped and later overwritten.
+- Search length and auction browser page size honor the bounded configuration values.
+- Admin stats report pending listings, pending returns, and records flagged for manual review.
 - Timestamp-based expiration changes active listings to `RETURN_PENDING`.
 - Basic cancellation and pending-return state handling.
 - Price parser unit tests and a GitHub Actions Maven verification workflow.
@@ -31,6 +34,7 @@ This snapshot is a work in progress and **must not be used on a live economy ser
 - Purchase is deliberately disabled in the GUI. No money is withdrawn and no item is delivered. This is intentional because Vault operations and file writes cannot be made atomic by this implementation.
 - Transaction history, complete transaction journal/reconciliation, safe automatic pending-item claims, robust crash-safe return delivery, admin recovery tooling, SQLite, MySQL, and PlaceholderAPI are not implemented.
 - The current cancellation delivery sequence is not crash-atomic between inventory mutation and the YAML status write. Treat pending-return records as requiring manual backup/review.
+- A listing confirmation interrupted at an ambiguous point is kept non-purchasable and flagged for review rather than silently deleting its escrow record.
 - The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
 - No claim is made that compilation, automated tests, Paper/Purpur runtime behavior, or the full listing/purchase lifecycle have passed. Check the Actions tab for actual build results.
 
