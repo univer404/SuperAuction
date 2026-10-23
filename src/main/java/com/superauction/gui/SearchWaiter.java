@@ -21,7 +21,7 @@ public final class SearchWaiter implements Listener {
 
     static void arm(JavaPlugin plugin, UUID playerId, Consumer<String> callback) {
         WAITING.put(playerId, callback);
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> WAITING.remove(playerId), 20L * 30);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> WAITING.remove(playerId, callback), 20L * 30);
     }
 
     @EventHandler
