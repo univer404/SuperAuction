@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class Listing {
-    public enum Status { PENDING, ACTIVE, SOLD, RETURN_PENDING, RETURN_DELIVERY_STARTED, RETURNED, EXPIRED, CANCELLED, FAILED_REQUIRES_REVIEW }
+    public enum Status { PENDING, ACTIVE, PENDING_PURCHASE, SOLD, RETURN_PENDING, RETURN_DELIVERY_STARTED, RETURNED, EXPIRED, CANCELLED, FAILED_REQUIRES_REVIEW }
 
     private final UUID id;
     private final UUID sellerId;
