@@ -7,6 +7,8 @@ import com.superauction.gui.AuctionMenu;
 import com.superauction.gui.SearchWaiter;
 import com.superauction.storage.YamlAuctionStore;
 import org.bukkit.command.PluginCommand;
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.util.Objects;
 public final class SuperAuction extends JavaPlugin {
     private AuctionService auctionService;
     private TransactionJournal transactionJournal;
+    private Economy economy;
 
     @Override
     public void onEnable() {
@@ -32,6 +35,7 @@ public final class SuperAuction extends JavaPlugin {
             return;
         }
 
+        setupEconomy();
         PluginCommand command = Objects.requireNonNull(getCommand("ah"), "ah command missing from plugin.yml");
         AuctionCommand executor = new AuctionCommand(this, auctionService);
         command.setExecutor(executor);
@@ -69,5 +73,28 @@ public final class SuperAuction extends JavaPlugin {
 
     public TransactionJournal getTransactionJournal() {
         return transactionJournal;
+    }
+
+    /**
+     * Resolve Vault's active economy provider. Purchase processing remains disabled until
+     * the journal and item-delivery reconciliation workflow is completed.
+     */
+    private void setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            getLogger().warning("Vault was not found. Auction browsing and listing remain available; purchases are disabled.");
+            return;
+        }
+        RegisteredServiceProvider<Economy> registration =
+                getServer().getServicesManager().getRegistration(Economy.class);
+        if (registration == null || registration.getProvider() == null) {
+            getLogger().warning("Vault has no economy provider. Purchases remain disabled.");
+            return;
+        }
+        economy = registration.getProvider();
+        getLogger().info("Vault economy provider detected: " + economy.getName());
+    }
+
+    public Economy getEconomy() {
+        return economy;
     }
 }
