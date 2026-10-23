@@ -37,6 +37,13 @@ public final class SuperAuction extends JavaPlugin {
             transactionJournal = new TransactionJournal(getDataFolder().toPath().resolve("transactions.log"));
             transactionJournal.load();
             auctionService = new AuctionService(this, store);
+            int interruptedTransactions = transactionJournal.markIncompleteForReview();
+            int interruptedListings = auctionService.markInterruptedPurchasesForReview();
+            if (interruptedTransactions > 0 || interruptedListings > 0) {
+                getLogger().warning("Found interrupted purchase work: " + interruptedTransactions
+                        + " transaction(s), " + interruptedListings
+                        + " listing(s). They were flagged for manual review; no money or items were moved.");
+            }
         } catch (IOException exception) {
             getLogger().severe("Could not safely load auction data. Plugin will disable to protect existing data.");
             exception.printStackTrace();
