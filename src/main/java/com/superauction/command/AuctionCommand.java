@@ -207,7 +207,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) return List.of("sell", "mine", "history", "search", "view", "admin", "help").stream()
                 .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
-        if (args.length == 2 && args[0].equalsIgnoreCase("admin")) return List.of("reload", "stats", "inspect", "recover");
+        if (args.length == 2 && args[0].equalsIgnoreCase("admin")) return List.of("reload", "stats", "inspect", "transaction", "recover");
         return List.of();
     }
 }
