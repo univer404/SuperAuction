@@ -181,7 +181,24 @@ public final class AuctionMenu implements Listener {
                 UUID id=player.getUniqueId();
                 plugin.getServer().getScheduler().runTaskLater(plugin,()->SearchWaiter.arm(plugin,id,q->openBrowse(player,q,0)),1L);
             }
-            case "history" -> player.sendMessage(color("&eTransaction history is not yet available; no transactions are being hidden."));
+            case "history" -> {
+                if (!player.hasPermission("superauction.history")) {
+                    player.sendMessage(color("&cYou don't have permission."));
+                    return;
+                }
+                var history = plugin.getTransactionJournal().all().stream()
+                        .filter(t -> t.buyerId().equals(player.getUniqueId()) || t.sellerId().equals(player.getUniqueId()))
+                        .limit(10)
+                        .toList();
+                player.sendMessage(color("&b&lYour Auction Transaction History"));
+                if (history.isEmpty()) {
+                    player.sendMessage(color("&7No recorded transactions yet."));
+                } else {
+                    history.forEach(t -> player.sendMessage(color("&7" + t.id().toString().substring(0, 8)
+                            + " &f" + t.amount() + " &7" + t.stage()
+                            + (t.buyerId().equals(player.getUniqueId()) ? " &8(buyer)" : " &8(seller)"))));
+                }
+            }
             case "purchase" -> {
                 if(holder.listingId!=null) player.sendMessage(color("&ePurchase processing is disabled until durable economy reconciliation is implemented. No money was taken."));
             }
