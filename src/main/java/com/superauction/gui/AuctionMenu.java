@@ -128,7 +128,9 @@ public final class AuctionMenu implements Listener {
         ItemStack clicked=event.getCurrentItem();
         if(clicked==null || clicked.getType().isAir()) return;
         ItemMeta meta=clicked.getItemMeta();
-        if(meta!=null && meta.getPersistentDataContainer().has(listingKey,PersistentDataType.STRING)) {
+        if(meta==null) return;
+        String action=meta.getPersistentDataContainer().get(actionKey,PersistentDataType.STRING);
+        if(action==null && meta.getPersistentDataContainer().has(listingKey,PersistentDataType.STRING)) {
             try {
                 UUID id=UUID.fromString(meta.getPersistentDataContainer().get(listingKey,PersistentDataType.STRING));
                 if(holder.type.equals("browse")) openInspect(player,id);
@@ -139,8 +141,6 @@ public final class AuctionMenu implements Listener {
             } catch (IllegalArgumentException ignored) { player.sendMessage(color("&cInvalid listing reference.")); }
             return;
         }
-        if(meta==null) return;
-        String action=meta.getPersistentDataContainer().get(actionKey,PersistentDataType.STRING);
         if(action==null) return;
         switch(action) {
             case "previous" -> { if(holder.type.equals("mine")) openMine(player,holder.page-1); else openBrowse(player,holder.query,holder.page-1); }
