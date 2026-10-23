@@ -1,0 +1,204 @@
+package com.superauction.gui;
+
+import com.superauction.SuperAuction;
+import com.superauction.auction.AuctionService;
+import com.superauction.auction.Listing;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.*;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.text.DecimalFormat;
+import java.util.*;
+
+/** Server-side tagged inventory menus. All actions are resolved from trusted listing IDs, never item lore. */
+public final class AuctionMenu implements Listener {
+    private final SuperAuction plugin;
+    private final AuctionService service;
+    private final NamespacedKey actionKey;
+    private final NamespacedKey listingKey;
+    private final NamespacedKey pageKey;
+
+    public AuctionMenu(SuperAuction plugin, AuctionService service) {
+        this.plugin = plugin;
+        this.service = service;
+        actionKey = new NamespacedKey(plugin, "menu_action");
+        listingKey = new NamespacedKey(plugin, "listing_id");
+        pageKey = new NamespacedKey(plugin, "page");
+    }
+
+    public void openBrowse(Player player, String query, int page) {
+        List<Listing> listings = service.activeListings(query);
+        int pageSize = 45;
+        int pages = Math.max(1, (int)Math.ceil(listings.size() / (double)pageSize));
+        int safePage = Math.max(0, Math.min(page, pages - 1));
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage), 54,
+                color("&0SuperAuction &8• &7" + (safePage + 1) + "/" + pages));
+        int start = safePage * pageSize;
+        for (int i = 0; i < pageSize && start + i < listings.size(); i++) {
+            Listing listing = listings.get(start + i);
+            ItemStack icon = listing.item();
+            ItemMeta meta = icon.getItemMeta();
+            if (meta != null) {
+                List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                lore.add(color("&8&m----------------"));
+                lore.add(color("&7Seller: &f" + listing.sellerName()));
+                lore.add(color("&7Price: &a$" + format(listing.price())));
+                lore.add(color("&7Expires: &f" + remaining(listing.expiresAt())));
+                lore.add(color("&eClick to inspect"));
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(listingKey, PersistentDataType.STRING, listing.id().toString());
+                icon.setItemMeta(meta);
+            }
+            inventory.setItem(i, icon);
+        }
+        button(inventory, 45, Material.ARROW, "&ePrevious page", "previous", null, safePage);
+        button(inventory, 48, Material.COMPASS, "&bSearch", "search", null, safePage);
+        button(inventory, 49, Material.HOPPER, "&bRefresh", "refresh", null, safePage);
+        button(inventory, 50, Material.CHEST, "&bMy listings", "mine", null, safePage);
+        button(inventory, 51, Material.BOOK, "&bHistory", "history", null, safePage);
+        button(inventory, 53, Material.ARROW, "&eNext page", "next", null, safePage);
+        player.openInventory(inventory);
+    }
+
+    public void openMine(Player player, int page) {
+        List<Listing> listings = service.mine(player.getUniqueId()).stream()
+                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING)
+                .toList();
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), 54, color("&0My Auction Listings"));
+        int safePage = Math.max(0, Math.min(page, Math.max(0, (listings.size()-1)/45)));
+        for (int i=0; i<45 && safePage*45+i<listings.size(); i++) {
+            Listing listing=listings.get(safePage*45+i);
+            ItemStack icon=listing.item();
+            ItemMeta meta=icon.getItemMeta();
+            if(meta!=null){
+                List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
+                lore.add(color("&7Price: &a$"+format(listing.price())));
+                lore.add(color("&7Status: &f"+listing.status()));
+                lore.add(color("&eClick to manage"));
+                meta.setLore(lore);
+                meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing.id().toString());
+                icon.setItemMeta(meta);
+            }
+            inventory.setItem(i,icon);
+        }
+        button(inventory,45,Material.ARROW,"&ePrevious","previous",null,safePage);
+        button(inventory,49,Material.SPECTRAL_ARROW,"&bBack to Auction House","browse",null,0);
+        button(inventory,53,Material.ARROW,"&eNext","next",null,safePage);
+        player.openInventory(inventory);
+    }
+
+    private void openInspect(Player player, UUID id) {
+        Listing listing = service.find(id);
+        if (listing == null || listing.status() != Listing.Status.ACTIVE || listing.expiresAt() <= System.currentTimeMillis()) {
+            player.sendMessage(color("&cThis listing is no longer available."));
+            openBrowse(player, "", 0);
+            return;
+        }
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("inspect", "", 0, id), 27, color("&0Listing Details"));
+        ItemStack icon=listing.item();
+        ItemMeta meta=icon.getItemMeta();
+        if(meta!=null){
+            List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
+            lore.add(color("&7Seller: &f"+listing.sellerName()));
+            lore.add(color("&7Price: &a$"+format(listing.price())));
+            lore.add(color("&7Expires: &f"+remaining(listing.expiresAt())));
+            meta.setLore(lore); icon.setItemMeta(meta);
+        }
+        inventory.setItem(13,icon);
+        button(inventory,11,Material.LIME_CONCRETE,"&aPurchase","purchase",id.toString(),0);
+        button(inventory,15,Material.ARROW,"&eBack","browse","",0);
+        player.openInventory(inventory);
+    }
+
+    @EventHandler public void onClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof MenuHolder holder)) return;
+        event.setCancelled(true);
+        if (event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        ItemStack clicked=event.getCurrentItem();
+        if(clicked==null || clicked.getType().isAir()) return;
+        ItemMeta meta=clicked.getItemMeta();
+        if(meta!=null && meta.getPersistentDataContainer().has(listingKey,PersistentDataType.STRING)) {
+            try {
+                UUID id=UUID.fromString(meta.getPersistentDataContainer().get(listingKey,PersistentDataType.STRING));
+                if(holder.type.equals("browse")) openInspect(player,id);
+                else if(holder.type.equals("mine")) {
+                    Listing listing=service.find(id);
+                    if(listing!=null && listing.sellerId().equals(player.getUniqueId())) openManage(player,id);
+                }
+            } catch (IllegalArgumentException ignored) { player.sendMessage(color("&cInvalid listing reference.")); }
+            return;
+        }
+        if(meta==null) return;
+        String action=meta.getPersistentDataContainer().get(actionKey,PersistentDataType.STRING);
+        if(action==null) return;
+        switch(action) {
+            case "previous" -> { if(holder.type.equals("mine")) openMine(player,holder.page-1); else openBrowse(player,holder.query,holder.page-1); }
+            case "next" -> { if(holder.type.equals("mine")) openMine(player,holder.page+1); else openBrowse(player,holder.query,holder.page+1); }
+            case "mine" -> openMine(player,0);
+            case "browse","refresh" -> openBrowse(player,holder.query,0);
+            case "search" -> {
+                player.closeInventory();
+                player.sendMessage(color("&bType your search in chat within 30 seconds. Type cancel to stop."));
+                UUID id=player.getUniqueId();
+                plugin.getServer().getScheduler().runTaskLater(plugin,()->SearchWaiter.arm(plugin,id,q->openBrowse(player,q,0)),1L);
+            }
+            case "history" -> player.sendMessage(color("&eTransaction history is not yet available; no transactions are being hidden."));
+            case "purchase" -> {
+                if(holder.listingId!=null) player.sendMessage(color("&ePurchase processing is disabled until durable economy reconciliation is implemented. No money was taken."));
+            }
+            case "cancel-listing" -> {
+                if(holder.listingId!=null) {
+                    try { service.cancelListing(player,holder.listingId); player.sendMessage(color("&aListing cancelled; item returned or queued for recovery.")); openMine(player,0); }
+                    catch(Exception ex){player.sendMessage(color("&cCould not safely cancel: "+ex.getMessage()));}
+                }
+            }
+            case "close" -> player.closeInventory();
+        }
+    }
+
+    private void openManage(Player player, UUID id) {
+        Listing listing=service.find(id);
+        if(listing==null) {openMine(player,0);return;}
+        Inventory inv=Bukkit.createInventory(new MenuHolder("manage","",0,id),27,color("&0Manage Listing"));
+        inv.setItem(13,listing.item());
+        button(inv,11,Material.RED_CONCRETE,"&cCancel Listing","cancel-listing",id.toString(),0);
+        button(inv,15,Material.ARROW,"&eBack","mine",null,0);
+        player.openInventory(inv);
+    }
+
+    @EventHandler public void onDrag(InventoryDragEvent event) {
+        if(event.getView().getTopInventory().getHolder(false) instanceof MenuHolder) {
+            if(event.getRawSlots().stream().anyMatch(slot->slot<event.getView().getTopInventory().getSize())) event.setCancelled(true);
+        }
+    }
+
+    private void button(Inventory inv,int slot,Material material,String name,String action,String listing,int page) {
+        ItemStack item=new ItemStack(material);
+        ItemMeta meta=item.getItemMeta();
+        meta.setDisplayName(color(name));
+        meta.getPersistentDataContainer().set(actionKey,PersistentDataType.STRING,action);
+        if(listing!=null) meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing);
+        meta.getPersistentDataContainer().set(pageKey,PersistentDataType.INTEGER,page);
+        item.setItemMeta(meta); inv.setItem(slot,item);
+    }
+    private static String format(double price){return new DecimalFormat("#,##0.##").format(price);}
+    private static String remaining(long end){long seconds=Math.max(0,(end-System.currentTimeMillis())/1000);return seconds/3600+"h "+(seconds%3600)/60+"m";}
+    private static String color(String text){return ChatColor.translateAlternateColorCodes('&',text);}
+    private static final class MenuHolder implements InventoryHolder {
+        final String type,query; final int page; final UUID listingId;
+        MenuHolder(String type,String query,int page){this(type,query,page,null);}
+        MenuHolder(String type,String query,int page,UUID listingId){this.type=type;this.query=query;this.page=page;this.listingId=listingId;}
+        @Override public Inventory getInventory(){return null;}
+    }
+}
