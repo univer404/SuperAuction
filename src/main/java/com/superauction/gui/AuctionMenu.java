@@ -97,7 +97,7 @@ public final class AuctionMenu implements Listener {
 
     public void openMine(Player player, int page) {
         List<Listing> listings = service.mine(player.getUniqueId()).stream()
-                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW)
+                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.PENDING_PURCHASE || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW)
                 .toList();
         Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), 54, color("&0My Auction Listings"));
         int safePage = Math.max(0, Math.min(page, Math.max(0, (listings.size()-1)/45)));
@@ -200,7 +200,15 @@ public final class AuctionMenu implements Listener {
                 }
             }
             case "purchase" -> {
-                if(holder.listingId!=null) player.sendMessage(color("&ePurchase processing is disabled until durable economy reconciliation is implemented. No money was taken."));
+                if (holder.listingId == null) return;
+                try {
+                    service.purchase(player, holder.listingId, plugin.getEconomy(), plugin.getTransactionJournal());
+                    openBrowse(player, holder.query, holder.page);
+                } catch (Exception exception) {
+                    player.sendMessage(color("&cPurchase did not complete normally: " + exception.getMessage()));
+                    player.sendMessage(color("&eIf this transaction may have charged you, contact an administrator with /ah history."));
+                    openBrowse(player, holder.query, holder.page);
+                }
             }
             case "confirm-listing" -> {
                 PendingListing pending = pendingListings.remove(player.getUniqueId());
