@@ -35,8 +35,8 @@ public final class AuctionService implements Listener {
         var securedItem = hand.clone();
         long now = System.currentTimeMillis();
         Listing listing = new Listing(UUID.randomUUID(), seller.getUniqueId(), seller.getName(), securedItem,
-                price, now, now + plugin.getConfig().getLong("listings.default-duration-hours", 24) * 3_600_000L, Listing.Status.ACTIVE);
-        // Persist the escrow copy first. If the write fails, the seller's hand is untouched.
+                price, now, now + plugin.getConfig().getLong("listings.default-duration-hours", 24) * 3_600_000L, Listing.Status.PENDING);
+        // Persist escrow as PENDING first: a crash cannot expose this listing for purchase.
         store.add(listing);
         try {
             store.save();
@@ -44,7 +44,23 @@ public final class AuctionService implements Listener {
             store.remove(listing.id());
             throw exception;
         }
+
+        var currentHand = seller.getInventory().getItemInMainHand();
+        if (!currentHand.isSimilar(securedItem) || currentHand.getAmount() != securedItem.getAmount()) {
+            store.remove(listing.id());
+            store.save();
+            throw new IllegalArgumentException("Your held item changed before listing. Nothing was removed.");
+        }
+
         seller.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.AIR));
+        listing.setStatus(Listing.Status.ACTIVE);
+        try {
+            store.save();
+        } catch (IOException exception) {
+            // Leave the durable escrow record non-purchasable if final activation cannot be saved.
+            listing.setStatus(Listing.Status.PENDING);
+            throw exception;
+        }
         seller.sendMessage("§aListed §f" + securedItem.getAmount() + "x " + niceName(securedItem.getType()) + " §afor §e" + price + "§a.");
         return listing;
     }
