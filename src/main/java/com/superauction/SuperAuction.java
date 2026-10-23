@@ -1,6 +1,7 @@
 package com.superauction;
 
 import com.superauction.auction.AuctionService;
+import com.superauction.auction.TransactionJournal;
 import com.superauction.command.AuctionCommand;
 import com.superauction.gui.AuctionMenu;
 import com.superauction.gui.SearchWaiter;
@@ -13,6 +14,7 @@ import java.util.Objects;
 
 public final class SuperAuction extends JavaPlugin {
     private AuctionService auctionService;
+    private TransactionJournal transactionJournal;
 
     @Override
     public void onEnable() {
@@ -20,6 +22,8 @@ public final class SuperAuction extends JavaPlugin {
         try {
             YamlAuctionStore store = new YamlAuctionStore(this);
             store.load();
+            transactionJournal = new TransactionJournal(getDataFolder().toPath().resolve("transactions.log"));
+            transactionJournal.load();
             auctionService = new AuctionService(this, store);
         } catch (IOException exception) {
             getLogger().severe("Could not safely load auction data. Plugin will disable to protect existing data.");
@@ -61,5 +65,9 @@ public final class SuperAuction extends JavaPlugin {
 
     public AuctionService getAuctionService() {
         return auctionService;
+    }
+
+    public TransactionJournal getTransactionJournal() {
+        return transactionJournal;
     }
 }
