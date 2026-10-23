@@ -27,6 +27,7 @@ public final class AuctionMenu implements Listener {
     private final NamespacedKey actionKey;
     private final NamespacedKey listingKey;
     private final NamespacedKey pageKey;
+    private final Map<UUID, PendingListing> pendingListings = new HashMap<>();
 
     public AuctionMenu(SuperAuction plugin, AuctionService service) {
         this.plugin = plugin;
@@ -68,6 +69,28 @@ public final class AuctionMenu implements Listener {
         button(inventory, 51, Material.BOOK, "&bHistory", "history", null, safePage);
         button(inventory, 53, Material.ARROW, "&eNext page", "next", null, safePage);
         player.openInventory(inventory);
+    }
+
+    public void openListingConfirmation(Player player, double price) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand.getType().isAir()) { player.sendMessage(color("&cHold the item you want to sell.")); return; }
+        pendingListings.put(player.getUniqueId(), new PendingListing(hand.clone(), price));
+        Inventory inv = Bukkit.createInventory(new MenuHolder("confirm-listing", "", 0), 27, color("&0Confirm Listing"));
+        ItemStack preview = hand.clone();
+        ItemMeta meta = preview.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(color("&7Quantity: &f" + hand.getAmount()));
+            lore.add(color("&7Asking price: &a$" + format(price)));
+            lore.add(color("&7Seller fee: &fDisabled (0%)"));
+            lore.add(color("&7Net proceeds: &a$" + format(price)));
+            lore.add(color("&7Duration: &f" + plugin.getConfig().getLong("listings.default-duration-hours", 24) + " hours"));
+            meta.setLore(lore); preview.setItemMeta(meta);
+        }
+        inv.setItem(13, preview);
+        button(inv, 11, Material.LIME_CONCRETE, "&aConfirm Listing", "confirm-listing", null, 0);
+        button(inv, 15, Material.RED_CONCRETE, "&cCancel", "cancel-listing-confirmation", null, 0);
+        player.openInventory(inv);
     }
 
     public void openMine(Player player, int page) {
@@ -157,6 +180,27 @@ public final class AuctionMenu implements Listener {
             case "purchase" -> {
                 if(holder.listingId!=null) player.sendMessage(color("&ePurchase processing is disabled until durable economy reconciliation is implemented. No money was taken."));
             }
+            case "confirm-listing" -> {
+                PendingListing pending = pendingListings.remove(player.getUniqueId());
+                if (pending == null) { player.sendMessage(color("&cListing confirmation expired. Try again.")); openBrowse(player, "", 0); return; }
+                ItemStack hand = player.getInventory().getItemInMainHand();
+                if (hand.getType().isAir() || hand.getAmount() != pending.item.getAmount() || !hand.isSimilar(pending.item)) {
+                    player.sendMessage(color("&cYour held item changed. Nothing was listed."));
+                    return;
+                }
+                try {
+                    service.createListing(player, pending.price);
+                    player.sendMessage(color("&aListing created."));
+                    openBrowse(player, "", 0);
+                } catch (Exception ex) {
+                    player.sendMessage(color("&cCould not safely create listing: " + ex.getMessage()));
+                }
+            }
+            case "cancel-listing-confirmation" -> {
+                pendingListings.remove(player.getUniqueId());
+                player.sendMessage(color("&7Listing cancelled; your item was not changed."));
+                openBrowse(player, "", 0);
+            }
             case "cancel-listing" -> {
                 if(holder.listingId!=null) {
                     try { service.cancelListing(player,holder.listingId); player.sendMessage(color("&aListing cancelled; item returned or queued for recovery.")); openMine(player,0); }
@@ -195,6 +239,7 @@ public final class AuctionMenu implements Listener {
     private static String format(double price){return new DecimalFormat("#,##0.##").format(price);}
     private static String remaining(long end){long seconds=Math.max(0,(end-System.currentTimeMillis())/1000);return seconds/3600+"h "+(seconds%3600)/60+"m";}
     private static String color(String text){return ChatColor.translateAlternateColorCodes('&',text);}
+    private record PendingListing(ItemStack item, double price) { }
     private static final class MenuHolder implements InventoryHolder {
         final String type,query; final int page; final UUID listingId;
         MenuHolder(String type,String query,int page){this(type,query,page,null);}
