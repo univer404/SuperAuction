@@ -48,9 +48,15 @@ public final class AuctionService implements Listener {
 
         var currentHand = seller.getInventory().getItemInMainHand();
         if (!currentHand.isSimilar(securedItem) || currentHand.getAmount() != securedItem.getAmount()) {
-            store.remove(listing.id());
-            store.save();
-            throw new IllegalArgumentException("Your held item changed before listing. Nothing was removed.");
+            // Keep the already-persisted escrow record non-purchasable for manual review.
+            // Removing it here could lose the only durable trace if the follow-up write failed.
+            listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+            try {
+                store.save();
+            } catch (IOException exception) {
+                throw new IOException("Your held item changed and the escrow record needs admin review.", exception);
+            }
+            throw new IllegalArgumentException("Your held item changed before listing. The record was flagged for admin review; no item was removed.");
         }
 
         seller.getInventory().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.AIR));
