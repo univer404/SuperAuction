@@ -137,12 +137,14 @@ public final class AuctionService implements Listener {
         }
 
         boolean buyerCharged = false;
+        boolean paymentDeclinedCleanly = false;
         try {
             EconomyResponse withdrawal = economy.withdrawPlayer(buyer, listing.price());
             if (withdrawal == null || !withdrawal.transactionSuccess()) {
                 journal.advance(transaction.id(), TransactionJournal.Stage.ABORTED);
                 listing.setStatus(Listing.Status.ACTIVE);
                 store.save();
+                paymentDeclinedCleanly = true;
                 throw new IllegalStateException("The economy provider declined the payment; no item was delivered.");
             }
             buyerCharged = true;
@@ -173,6 +175,10 @@ public final class AuctionService implements Listener {
                 // Never blindly refund or retry: the previous external operation may have succeeded.
                 try { journal.advance(transaction.id(), TransactionJournal.Stage.NEEDS_REVIEW); }
                 catch (IOException | IllegalStateException journalException) { exception.addSuppressed(journalException); }
+                listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+                try { store.save(); } catch (IOException saveException) { exception.addSuppressed(saveException); }
+            } else if (!paymentDeclinedCleanly) {
+                // Even before charging, a failed persistence/journal step leaves reservation state uncertain.
                 listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
                 try { store.save(); } catch (IOException saveException) { exception.addSuppressed(saveException); }
             }
