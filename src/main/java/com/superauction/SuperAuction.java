@@ -6,6 +6,7 @@ import com.superauction.command.AuctionCommand;
 import com.superauction.gui.AuctionMenu;
 import com.superauction.gui.SearchWaiter;
 import com.superauction.storage.YamlAuctionStore;
+import com.superauction.placeholder.SuperAuctionExpansion;
 import org.bukkit.command.PluginCommand;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -36,6 +37,12 @@ public final class SuperAuction extends JavaPlugin {
         }
 
         setupEconomy();
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new SuperAuctionExpansion(this).register();
+            getLogger().info("PlaceholderAPI expansion registered: %superauction_...%");
+        } else {
+            getLogger().info("PlaceholderAPI not found; placeholders are unavailable.");
+        }
         PluginCommand command = Objects.requireNonNull(getCommand("ah"), "ah command missing from plugin.yml");
         AuctionCommand executor = new AuctionCommand(this, auctionService);
         command.setExecutor(executor);
