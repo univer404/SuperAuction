@@ -106,10 +106,13 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§aConfiguration reloaded.");
                 } else if (args.length >= 2 && args[1].equalsIgnoreCase("stats")) {
                     var all = auctions.activeListings("");
-                    long pending = all.stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count();
+                    var records = auctions.allListings();
                     sender.sendMessage("§bSuperAuction stats");
                     sender.sendMessage("§7Active listings: §f" + all.size());
-                    sender.sendMessage("§7Pending returns: §f" + auctions.allListings().stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count());
+                    sender.sendMessage("§7Pending listings: §f" + records.stream().filter(l -> l.status() == Listing.Status.PENDING).count());
+                    sender.sendMessage("§7Pending returns: §f" + records.stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count());
+                    sender.sendMessage("§7Needs manual review: §f" + records.stream().filter(l -> l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).count());
+                    sender.sendMessage("§7Total stored records: §f" + records.size());
                     sender.sendMessage("§7Storage: §fYAML");
                 } else if (args.length >= 3 && args[1].equalsIgnoreCase("inspect")) {
                     if (!sender.hasPermission("superauction.admin.inspect")) { sender.sendMessage("§cYou don't have permission."); return true; }
