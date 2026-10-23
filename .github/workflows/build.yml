@@ -4,6 +4,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,3 +21,11 @@ jobs:
           cache: maven
       - name: Verify
         run: mvn --batch-mode --no-transfer-progress clean verify
+      - name: Upload verified plugin JAR
+        if: success() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SuperAuction-plugin
+          path: target/*.jar
+          if-no-files-found: error
+          retention-days: 14
