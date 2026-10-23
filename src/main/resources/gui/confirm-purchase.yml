@@ -1,0 +1,11 @@
+title: "&0Confirm Purchase"
+size: 27
+item-slot: 13
+confirm:
+  slot: 11
+  material: LIME_CONCRETE
+  name: "&aConfirm Purchase"
+cancel:
+  slot: 15
+  material: RED_CONCRETE
+  name: "&cCancel"
