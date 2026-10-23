@@ -7,6 +7,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.economy.EconomyResponse;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -90,6 +92,92 @@ public final class AuctionService implements Listener {
         }
         seller.sendMessage("§aListed §f" + securedItem.getAmount() + "x " + niceName(securedItem.getType()) + " §afor §e" + price + "§a.");
         return listing;
+    }
+
+    /**
+     * Executes the online happy path. Any uncertain outcome is reserved for manual review;
+     * the plugin never retries a charge, item delivery, or payout automatically.
+     */
+    public synchronized void purchase(Player buyer, UUID listingId, Economy economy,
+                                      TransactionJournal journal) throws IOException {
+        if (economy == null) throw new IllegalStateException("No Vault economy provider is available.");
+        Listing listing = store.find(listingId);
+        if (listing == null || listing.status() != Listing.Status.ACTIVE
+                || listing.expiresAt() <= System.currentTimeMillis()) {
+            throw new IllegalArgumentException("This listing is no longer available.");
+        }
+        if (listing.sellerId().equals(buyer.getUniqueId())
+                && !plugin.getConfig().getBoolean("economy.allow-buy-own-listing", false)) {
+            throw new IllegalArgumentException("You cannot purchase your own listing.");
+        }
+        if (!canFit(buyer, listing.item())) {
+            throw new IllegalArgumentException("Your inventory does not have enough space for this item.");
+        }
+        if (!Double.isFinite(listing.price()) || listing.price() <= 0
+                || !economy.has(buyer, listing.price())) {
+            throw new IllegalArgumentException("You do not have enough money.");
+        }
+
+        // Reserve the listing durably before any economy or inventory mutation.
+        listing.setStatus(Listing.Status.PENDING_PURCHASE);
+        try {
+            store.save();
+        } catch (IOException exception) {
+            listing.setStatus(Listing.Status.ACTIVE);
+            throw exception;
+        }
+
+        TransactionJournal.Transaction transaction;
+        try {
+            transaction = journal.begin(buyer.getUniqueId(), listing.sellerId(), listing.id(), listing.price());
+        } catch (IOException | RuntimeException exception) {
+            listing.setStatus(Listing.Status.ACTIVE);
+            try { store.save(); } catch (IOException saveException) { exception.addSuppressed(saveException); }
+            throw exception;
+        }
+
+        boolean buyerCharged = false;
+        try {
+            EconomyResponse withdrawal = economy.withdrawPlayer(buyer, listing.price());
+            if (withdrawal == null || !withdrawal.transactionSuccess()) {
+                journal.advance(transaction.id(), TransactionJournal.Stage.ABORTED);
+                listing.setStatus(Listing.Status.ACTIVE);
+                store.save();
+                throw new IllegalStateException("The economy provider declined the payment; no item was delivered.");
+            }
+            buyerCharged = true;
+            journal.advance(transaction.id(), TransactionJournal.Stage.BUYER_CHARGED);
+
+            // The inventory capacity was checked before charging; Bukkit executes this on the server thread.
+            Map<Integer, ItemStack> leftovers = buyer.getInventory().addItem(listing.item());
+            if (!leftovers.isEmpty()) {
+                throw new IllegalStateException("Item delivery was incomplete; transaction requires admin review.");
+            }
+            journal.advance(transaction.id(), TransactionJournal.Stage.ITEM_DELIVERED);
+
+            EconomyResponse payout = economy.depositPlayer(Bukkit.getOfflinePlayer(listing.sellerId()), listing.price());
+            if (payout == null || !payout.transactionSuccess()) {
+                throw new IllegalStateException("Seller payout failed; transaction requires admin review.");
+            }
+            journal.advance(transaction.id(), TransactionJournal.Stage.SELLER_PAID);
+
+            listing.setStatus(Listing.Status.SOLD);
+            store.save();
+            journal.advance(transaction.id(), TransactionJournal.Stage.COMPLETE);
+            buyer.sendMessage("§aPurchased §f" + listing.item().getAmount() + "x "
+                    + niceName(listing.item().getType()) + " §afor §e" + listing.price() + "§a.");
+            Player seller = Bukkit.getPlayer(listing.sellerId());
+            if (seller != null) seller.sendMessage("§aYour auction sold for §e" + listing.price() + "§a.");
+        } catch (IOException | RuntimeException exception) {
+            if (buyerCharged) {
+                // Never blindly refund or retry: the previous external operation may have succeeded.
+                try { journal.advance(transaction.id(), TransactionJournal.Stage.NEEDS_REVIEW); }
+                catch (IOException | IllegalStateException journalException) { exception.addSuppressed(journalException); }
+                listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+                try { store.save(); } catch (IOException saveException) { exception.addSuppressed(saveException); }
+            }
+            throw exception;
+        }
     }
 
     public List<Listing> activeListings(String query) {
