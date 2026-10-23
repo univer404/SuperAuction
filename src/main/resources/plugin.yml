@@ -1,0 +1,37 @@
+name: SuperAuction
+version: ${project.version}
+main: com.superauction.SuperAuction
+api-version: '1.21.11'
+description: A configurable player-to-player auction house.
+authors: [SuperAuction]
+softdepend: [Vault, PlaceholderAPI]
+commands:
+  ah:
+    description: Open and manage the auction house.
+    usage: /ah [sell <price>|mine|history|search <text>|view <player>|admin]
+    aliases: [auction, auctionhouse]
+permissions:
+  superauction.use:
+    description: Allows access to the auction house.
+    default: true
+  superauction.sell:
+    description: Allows listing items for sale.
+    default: true
+  superauction.history:
+    description: Allows viewing transaction history.
+    default: true
+  superauction.mute:
+    description: Allows muting auction broadcasts.
+    default: true
+  superauction.admin:
+    description: Allows access to SuperAuction administration.
+    default: op
+  superauction.admin.reload:
+    description: Allows reloading plugin configuration.
+    default: op
+  superauction.admin.inspect:
+    description: Allows inspecting listings and transaction state.
+    default: op
+  superauction.admin.recover:
+    description: Allows reviewing recoverable records.
+    default: op
