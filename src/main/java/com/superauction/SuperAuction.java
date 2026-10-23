@@ -35,6 +35,16 @@ public final class SuperAuction extends JavaPlugin {
         getServer().getPluginManager().registerEvents(auctionService, this);
         getServer().getPluginManager().registerEvents(new AuctionMenu(this, auctionService), this);
         getServer().getPluginManager().registerEvents(new SearchWaiter(), this);
+        long intervalSeconds = Math.max(15L, getConfig().getLong("expiration.check-interval-seconds", 60L));
+        getServer().getScheduler().runTaskTimer(this, () -> {
+            try {
+                int expired = auctionService.expireListings();
+                if (expired > 0) getLogger().info("Marked " + expired + " expired auction(s) as pending returns.");
+            } catch (IOException exception) {
+                getLogger().severe("Could not persist auction expiration changes. Existing escrow records were retained.");
+                exception.printStackTrace();
+            }
+        }, 20L, intervalSeconds * 20L);
         getLogger().info("SuperAuction enabled. YAML storage is active.");
     }
 
