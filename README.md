@@ -1,17 +1,6 @@
 # SuperAuction
 
-SuperAuction is an original Minecraft auction-house plugin project for Paper/Purpur 1.21.11, using Java 21 and Maven. The GUI direction follows the supplied reference's compact, readable Minecraft inventory presentation while keeping original branding and implementation.
-
-## Current development status
-
-This repository is being built in phases. Do not treat a source commit or a successful compilation as proof that every transaction-recovery scenario is safe. The release checklist will report implemented features and tests honestly.
-
-- Target API: Paper 1.21.11
-- Java: 21
-- Build: Maven
-- Economy: Vault hook planned
-- Initial storage target: YAML with atomic replacement
-- Folia: unsupported unless separately implemented and tested
+An original Minecraft auction-house plugin project targeting Paper/Purpur 1.21.11 and Java 21.
 
 ## Build
 
@@ -21,26 +10,55 @@ Install JDK 21 and Maven, then run:
 mvn clean verify
 ```
 
-The plugin JAR will be created under `target/`.
+The JAR, if the build succeeds, is written to `target/`. Install Vault and a compatible economy plugin before enabling any economy-dependent features.
 
-## Install
+## Implemented in the current development snapshot
 
-1. Install a compatible Paper or Purpur 1.21.11 server running Java 21.
-2. Install Vault and a Vault-compatible economy plugin.
-3. Put `SuperAuction-*.jar` in the server's `plugins` directory.
-4. Start the server once to generate configuration and data files.
-5. Stop the server before making manual changes to persistent data.
+- `/ah` opens a real inventory-based listing browser.
+- `/ah sell <price>` stores an item listing using YAML escrow records; accepts plain prices and k/m suffixes.
+- `/ah mine` opens the player's listing menu.
+- `/ah search <text>` searches listing item and seller names.
+- Tagged GUI buttons, cancelled inventory clicks/drags, item detail view, paging, and chat search.
+- YAML persistence uses a temporary file and replacement.
+- Timestamp-based expiration changes active listings to `RETURN_PENDING`.
+- Basic cancellation and pending-return state handling.
+- Price parser unit tests and a GitHub Actions Maven verification workflow.
+
+## Important limitations — not production-ready
+
+This snapshot is a work in progress and **must not be used on a live economy server**.
+
+- Purchase is deliberately disabled in the GUI. No money is withdrawn and no item is delivered. This is intentional because Vault operations and file writes cannot be made atomic by this implementation.
+- Transaction history, complete transaction journal/reconciliation, safe automatic pending-item claims, robust crash-safe return delivery, admin recovery tooling, SQLite, MySQL, and PlaceholderAPI are not implemented.
+- The current cancellation delivery sequence is not crash-atomic between inventory mutation and the YAML status write. Treat pending-return records as requiring manual backup/review.
+- The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
+- No claim is made that compilation, automated tests, Paper/Purpur runtime behavior, or the full listing/purchase lifecycle have passed. Check the Actions tab for actual build results.
 
 ## Commands
 
-- `/ah` — browse active listings
-- `/ah sell <price>` — begin listing the item in the main hand
-- `/ah mine` — manage your listings
-- `/ah history` — view your transaction history
-- `/ah search <text>` — search listings
-- `/ah view <player>` — view a player's active listings
-- `/ah admin reload` — reload supported configuration
+- `/ah` — browse listings.
+- `/ah sell <price>` — list the item in your main hand.
+- `/ah mine` — view your active and pending-return listings.
+- `/ah search <text>` — search listings.
+- `/ah view <player>` — view listings matching a seller name.
+- `/ah history` — reserved; history is not implemented.
+- `/ah admin reload` — reload Bukkit configuration.
 
-## Important limitations
+## Permissions
 
-The project is not considered production-ready until item escrow, economy reconciliation, pending delivery/return handling, persistence, GUI protections, and concurrency tests have been implemented and exercised on a real test server. SQLite/MySQL and PlaceholderAPI are not advertised as supported until their implementations are present.
+- `superauction.use`
+- `superauction.sell`
+- `superauction.history`
+- `superauction.mute`
+- `superauction.admin`
+- `superauction.admin.reload`
+- `superauction.admin.inspect`
+- `superauction.admin.recover`
+
+## Storage
+
+YAML is the only implemented backend. If `plugins/SuperAuction/auctions.yml` contains data that fails to load, preserve a backup and inspect the server log before changing or deleting it. Do not switch storage types expecting a migration; SQLite and MySQL are not implemented yet.
+
+## Safety stance
+
+Features that could charge money without a reliable recovery journal are disabled rather than simulated. Before a production release, implement and test a durable transaction ledger, idempotent economy reconciliation, recoverable item delivery, and crash-safe returns.
