@@ -1,6 +1,5 @@
 package com.superauction.gui;
 
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -19,19 +18,32 @@ public final class SearchWaiter implements Listener {
     public SearchWaiter(JavaPlugin plugin) {
         this.plugin = plugin;
     }
+
     static void arm(JavaPlugin plugin, UUID playerId, Consumer<String> callback) {
         WAITING.put(playerId, callback);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> WAITING.remove(playerId), 20L * 30);
     }
-    @EventHandler public void onChat(AsyncPlayerChatEvent event) {
-        Consumer<String> callback=WAITING.remove(event.getPlayer().getUniqueId());
-        if(callback==null)return;
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        UUID playerId = event.getPlayer().getUniqueId();
+        Consumer<String> callback = WAITING.remove(playerId);
+        if (callback == null) return;
+
         event.setCancelled(true);
-        String message=event.getMessage().trim();
-        if(message.equalsIgnoreCase("cancel")) { event.getPlayer().sendMessage("§7Search cancelled."); return; }
-        int maxLength = Math.max(1, Math.min(256, plugin.getConfig().getInt("search.maximum-query-length", 64)));\n        if(message.length()>maxLength) { event.getPlayer().sendMessage("§cSearch is too long (" + maxLength + " characters maximum)."); return; }
-        event.getPlayer().getServer().getScheduler().runTask(
-                org.bukkit.plugin.java.JavaPlugin.getProvidingPlugin(SearchWaiter.class),
-                () -> callback.accept(message));
+        String message = event.getMessage().trim();
+        if (message.equalsIgnoreCase("cancel")) {
+            event.getPlayer().sendMessage("§7Search cancelled.");
+            return;
+        }
+
+        int maxLength = Math.max(1, Math.min(256,
+                plugin.getConfig().getInt("search.maximum-query-length", 64)));
+        if (message.length() > maxLength) {
+            event.getPlayer().sendMessage("§cSearch is too long (" + maxLength + " characters maximum).");
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTask(plugin, () -> callback.accept(message));
     }
 }
