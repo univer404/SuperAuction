@@ -33,7 +33,6 @@ public final class SuperAuction extends JavaPlugin {
         command.setExecutor(executor);
         command.setTabCompleter(executor);
         getServer().getPluginManager().registerEvents(auctionService, this);
-        getServer().getPluginManager().registerEvents(new AuctionMenu(this, auctionService), this);
         getServer().getPluginManager().registerEvents(new SearchWaiter(), this);
         long intervalSeconds = Math.max(15L, getConfig().getLong("expiration.check-interval-seconds", 60L));
         getServer().getScheduler().runTaskTimer(this, () -> {
