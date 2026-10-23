@@ -155,6 +155,11 @@ public final class SQLiteAuctionStore implements AuctionStore {
     }
 
     private Connection connect() throws SQLException {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException exception) {
+            throw new SQLException("SQLite JDBC driver is missing from the plugin JAR.", exception);
+        }
         Connection connection = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.toAbsolutePath());
         try (Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA busy_timeout = 5000");
