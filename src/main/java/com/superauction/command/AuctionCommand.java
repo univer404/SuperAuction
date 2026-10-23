@@ -104,10 +104,35 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     if (!sender.hasPermission("superauction.admin.reload")) { sender.sendMessage("§cYou don't have permission."); return true; }
                     plugin.reloadConfig();
                     sender.sendMessage("§aConfiguration reloaded.");
+                } else if (args.length >= 2 && args[1].equalsIgnoreCase("stats")) {
+                    var all = auctions.activeListings("");
+                    long pending = all.stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count();
+                    sender.sendMessage("§bSuperAuction stats");
+                    sender.sendMessage("§7Active listings: §f" + all.size());
+                    sender.sendMessage("§7Pending returns: §f" + auctions.allListings().stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count());
+                    sender.sendMessage("§7Storage: §fYAML");
+                } else if (args.length >= 3 && args[1].equalsIgnoreCase("inspect")) {
+                    if (!sender.hasPermission("superauction.admin.inspect")) { sender.sendMessage("§cYou don't have permission."); return true; }
+                    try {
+                        Listing listing = auctions.find(java.util.UUID.fromString(args[2]));
+                        if (listing == null) { sender.sendMessage("§cListing not found."); return true; }
+                        sender.sendMessage("§bListing §f" + listing.id());
+                        sender.sendMessage("§7Seller: §f" + listing.sellerName() + " (" + listing.sellerId() + ")");
+                        sender.sendMessage("§7Item: §f" + listing.item().getAmount() + "x " + AuctionService.niceName(listing.item().getType()));
+                        sender.sendMessage("§7Price: §a" + listing.price() + " §7Status: §f" + listing.status());
+                        sender.sendMessage("§7Created: §f" + java.time.Instant.ofEpochMilli(listing.createdAt()));
+                        sender.sendMessage("§7Expires: §f" + java.time.Instant.ofEpochMilli(listing.expiresAt()));
+                    } catch (IllegalArgumentException exception) { sender.sendMessage("§cInvalid listing UUID."); }
+                } else if (args.length >= 2 && args[1].equalsIgnoreCase("recover")) {
+                    if (!sender.hasPermission("superauction.admin.recover")) { sender.sendMessage("§cYou don't have permission."); return true; }
+                    var pendingRecords = auctions.allListings().stream().filter(l -> l.status() == Listing.Status.PENDING || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).toList();
+                    sender.sendMessage("§eRecovery review only — this command does not move items or money.");
+                    sender.sendMessage("§7Records requiring review: §f" + pendingRecords.size());
+                    pendingRecords.stream().limit(20).forEach(l -> sender.sendMessage("§f" + l.id() + " §7" + l.status() + " §f" + l.sellerName() + " §7" + AuctionService.niceName(l.item().getType())));
                 } else {
                     sender.sendMessage("§b/ah admin reload §7Reload configuration");
                     sender.sendMessage("§b/ah admin stats §7Show listing count");
-                    sender.sendMessage("§b/ah admin inspect <id> §7Inspect a listing");
+                    sender.sendMessage("§b/ah admin inspect <listingId> §7Inspect a listing");
                     sender.sendMessage("§b/ah admin recover §7Review recoverable records");
                 }
                 return true;
