@@ -32,6 +32,10 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - Vault economy provider detection; it does not activate purchases.
 - Optional PlaceholderAPI expansion: `%superauction_active_listings%`, `%superauction_total_records%`, `%superauction_player_listings%`, and `%superauction_player_transactions%`.
 
+## Production validation status
+
+Automated CI verifies compilation, unit tests, and the shaded JAR contents. This is not a substitute for a full live-server release test. Before enabling on a live economy server, verify YAML and SQLite startup on the exact Paper/Purpur build, list/cancel/expire flows, full-inventory handling, and recovery after forced process termination. Purchases remain disabled until economy and item delivery can be reconciled safely.
+
 ## Important limitations — not production-ready
 
 This snapshot is a work in progress and **must not be used on a live economy server**.
