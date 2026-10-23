@@ -79,6 +79,10 @@ public final class AuctionService implements Listener {
         return store.find(id);
     }
 
+    public List<Listing> allListings() {
+        return store.all();
+    }
+
     public synchronized void cancelListing(Player seller, UUID id) throws IOException {
         Listing listing = store.find(id);
         if (listing == null || !listing.sellerId().equals(seller.getUniqueId())) {
