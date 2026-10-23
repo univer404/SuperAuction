@@ -67,7 +67,7 @@ public final class SuperAuction extends JavaPlugin {
                 exception.printStackTrace();
             }
         }, 20L, intervalSeconds * 20L);
-        getLogger().info("SuperAuction enabled. " + storageType.toUpperCase(java.util.Locale.ROOT) + " storage is active.");
+        getLogger().info("SuperAuction enabled. " + getConfig().getString("storage.type", "yaml").toUpperCase(java.util.Locale.ROOT) + " storage is active.");
     }
 
     @Override
