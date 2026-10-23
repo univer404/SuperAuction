@@ -1,0 +1,49 @@
+language: en
+
+storage:
+  # yaml is the initial backend. sqlite/mysql are reserved until their implementations are enabled.
+  type: yaml
+  safe-fallback: false
+
+economy:
+  require-vault: true
+  allow-buy-own-listing: false
+
+listings:
+  default-duration-hours: 24
+  minimum-price: 1.0
+  maximum-price: 1000000000.0
+  default-limit: 10
+  maximum-server-listings: 10000
+  seller-fee:
+    enabled: false
+    percent: 0.0
+    # none = fees disabled; future implementations may support a configured sink.
+    destination: none
+  blacklist:
+    - BEDROCK
+    - BARRIER
+    - COMMAND_BLOCK
+    - CHAIN_COMMAND_BLOCK
+    - REPEATING_COMMAND_BLOCK
+    - STRUCTURE_BLOCK
+    - STRUCTURE_VOID
+    - JIGSAW
+
+broadcasts:
+  enabled: true
+  format: "&8[&bAuction&8] &f{seller} sold {amount}x {item} for &a{price}&f."
+  sound: true
+
+search:
+  results-per-page: 45
+  maximum-query-length: 64
+
+expiration:
+  check-interval-seconds: 60
+
+recovery:
+  deliver-on-join: true
+  keep-audit-records: true
+
+debug: false
