@@ -43,6 +43,9 @@ public final class YamlAuctionStore {
 
         List<Listing> loaded = new ArrayList<>();
         ConfigurationSection section = yaml.getConfigurationSection("listings");
+        if (section == null && !yaml.getKeys(false).isEmpty()) {
+            throw new IOException("Auction data has no listings section. The original file was left untouched.");
+        }
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 try {
@@ -122,6 +125,10 @@ public final class YamlAuctionStore {
             yaml.set(path + ".status", listing.status().name());
         }
         yaml.save(tempFile.toFile());
+        if (Files.exists(file)) {
+            Path backupFile = file.resolveSibling("auctions.yml.bak");
+            Files.copy(file, backupFile, StandardCopyOption.REPLACE_EXISTING);
+        }
         try {
             Files.move(tempFile, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (UnsupportedOperationException exception) {
