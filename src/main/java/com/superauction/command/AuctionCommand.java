@@ -11,7 +11,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
@@ -64,8 +63,8 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     double max = plugin.getConfig().getDouble("listings.maximum-price", 1_000_000_000);
                     if (price < min || price > max) throw new IllegalArgumentException("Price must be between " + min + " and " + max + ".");
                     menus.openListingConfirmation(player, price);
-                } catch (IllegalArgumentException | IOException exception) {
-                    player.sendMessage("§c" + (exception instanceof IOException ? "Could not safely save the listing. Your item was not listed." : exception.getMessage()));
+                } catch (IllegalArgumentException exception) {
+                    player.sendMessage("§c" + exception.getMessage());
                     plugin.getLogger().warning("Listing attempt failed: " + exception.getMessage());
                 }
                 return true;
