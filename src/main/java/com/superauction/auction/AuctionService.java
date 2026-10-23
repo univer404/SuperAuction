@@ -94,13 +94,20 @@ public final class AuctionService implements Listener {
         // Persist a non-purchasable return state before attempting delivery.
         listing.setStatus(Listing.Status.RETURN_PENDING);
         store.save();
-        var leftovers = seller.getInventory().addItem(listing.item());
-        if (leftovers.isEmpty()) {
-            listing.setStatus(Listing.Status.RETURNED);
+        ItemStack returnedItem = listing.item();
+        if (!canFit(seller, returnedItem)) {
+            // Do not partially deliver: the escrow record remains the single complete copy.
+            seller.sendMessage("§eYour inventory cannot fit this item. It remains in a pending return record.");
+            return;
+        }
+        seller.getInventory().addItem(returnedItem);
+        listing.setStatus(Listing.Status.RETURNED);
+        try {
             store.save();
-        } else {
-            // Keep the escrow record and tell the player; recovery must be performed by an administrator.
-            seller.sendMessage("§eYour inventory is full. The item remains in a pending return record; do not remove auction data.");
+        } catch (IOException exception) {
+            // The write outcome is ambiguous after inventory mutation. Do not attempt another automatic delivery.
+            listing.setStatus(Listing.Status.FAILED_REQUIRES_REVIEW);
+            throw exception;
         }
     }
 
@@ -109,6 +116,20 @@ public final class AuctionService implements Listener {
     }
 
     /** Marks expired listings as pending returns; item data stays in escrow until safely recovered. */
+    private static boolean canFit(Player player, org.bukkit.inventory.ItemStack item) {
+        int remaining = item.getAmount();
+        int maxStack = item.getMaxStackSize();
+        for (org.bukkit.inventory.ItemStack existing : player.getInventory().getStorageContents()) {
+            if (existing == null || existing.getType().isAir()) {
+                remaining -= maxStack;
+            } else if (existing.isSimilar(item)) {
+                remaining -= Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+            }
+            if (remaining <= 0) return true;
+        }
+        return remaining <= 0;
+    }
+
     public synchronized int expireListings() throws IOException {
         int expired = 0;
         long now = System.currentTimeMillis();
