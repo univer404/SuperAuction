@@ -1,0 +1,33 @@
+# GUI defaults for the planned inventory-based auction browser.
+title: "&0Auction House"
+size: 54
+listing-slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+buttons:
+  previous:
+    slot: 45
+    material: ARROW
+    name: "&ePrevious Page"
+  search:
+    slot: 48
+    material: COMPASS
+    name: "&bSearch Listings"
+  sort:
+    slot: 49
+    material: HOPPER
+    name: "&bSort Listings"
+  mine:
+    slot: 50
+    material: CHEST
+    name: "&bMy Listings"
+  history:
+    slot: 51
+    material: BOOK
+    name: "&bTransaction History"
+  next:
+    slot: 53
+    material: ARROW
+    name: "&eNext Page"
+  close:
+    slot: 47
+    material: BARRIER
+    name: "&cClose"
