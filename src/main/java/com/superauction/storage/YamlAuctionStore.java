@@ -2,6 +2,7 @@ package com.superauction.storage;
 
 import com.superauction.auction.Listing;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -33,30 +34,57 @@ public final class YamlAuctionStore {
             save();
             return;
         }
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file.toFile());
+        YamlConfiguration yaml = new YamlConfiguration();
+        try {
+            yaml.load(file.toFile());
+        } catch (InvalidConfigurationException exception) {
+            throw new IOException("Auction data contains invalid YAML. The original file was left untouched.", exception);
+        }
+
         List<Listing> loaded = new ArrayList<>();
         ConfigurationSection section = yaml.getConfigurationSection("listings");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 try {
                     ConfigurationSection row = section.getConfigurationSection(key);
-                    if (row == null) continue;
-                    ItemStack item = row.getItemStack("item");
-                    if (item == null || item.getType().isAir()) {
-                        plugin.getLogger().severe("Skipping invalid listing " + key + "; manual recovery may be required.");
-                        continue;
+                    if (row == null) {
+                        throw new IllegalArgumentException("listing entry is not a configuration section");
                     }
+
+                    ItemStack item = row.getItemStack("item");
+                    double price = row.getDouble("price", Double.NaN);
+                    long createdAt = row.getLong("created-at", -1L);
+                    long expiresAt = row.getLong("expires-at", -1L);
+                    String sellerId = row.getString("seller-uuid", "");
+                    String sellerName = row.getString("seller-name", "");
+                    String status = row.getString("status", "");
+
+                    if (item == null || item.getType().isAir()) {
+                        throw new IllegalArgumentException("missing or empty escrow item");
+                    }
+                    if (!Double.isFinite(price) || price <= 0) {
+                        throw new IllegalArgumentException("invalid price");
+                    }
+                    if (createdAt < 0 || expiresAt < createdAt) {
+                        throw new IllegalArgumentException("invalid timestamps");
+                    }
+                    if (sellerName.isBlank()) {
+                        throw new IllegalArgumentException("missing seller name");
+                    }
+
                     loaded.add(new Listing(
                             UUID.fromString(key),
-                            UUID.fromString(row.getString("seller-uuid", "")),
-                            row.getString("seller-name", "Unknown"),
+                            UUID.fromString(sellerId),
+                            sellerName,
                             item,
-                            row.getDouble("price"),
-                            row.getLong("created-at"),
-                            row.getLong("expires-at"),
-                            Listing.Status.valueOf(row.getString("status", "ACTIVE"))));
+                            price,
+                            createdAt,
+                            expiresAt,
+                            Listing.Status.valueOf(status)));
                 } catch (RuntimeException exception) {
-                    plugin.getLogger().severe("Invalid auction record " + key + ". It was not loaded; preserve the file for recovery.");
+                    throw new IOException("Auction record '" + key
+                            + "' is invalid. The plugin will stop instead of overwriting potentially recoverable item data.",
+                            exception);
                 }
             }
         }
