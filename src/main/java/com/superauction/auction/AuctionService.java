@@ -75,6 +75,31 @@ public final class AuctionService implements Listener {
                 .sorted(Comparator.comparingLong(Listing::createdAt).reversed()).toList();
     }
 
+    public Listing find(UUID id) {
+        return store.find(id);
+    }
+
+    public synchronized void cancelListing(Player seller, UUID id) throws IOException {
+        Listing listing = store.find(id);
+        if (listing == null || !listing.sellerId().equals(seller.getUniqueId())) {
+            throw new IllegalArgumentException("Listing not found for your account.");
+        }
+        if (listing.status() != Listing.Status.ACTIVE) {
+            throw new IllegalArgumentException("Only active listings can be cancelled.");
+        }
+        // Persist a non-purchasable return state before attempting delivery.
+        listing.setStatus(Listing.Status.RETURN_PENDING);
+        store.save();
+        var leftovers = seller.getInventory().addItem(listing.item());
+        if (leftovers.isEmpty()) {
+            listing.setStatus(Listing.Status.RETURNED);
+            store.save();
+        } else {
+            // Keep the escrow record and tell the player; recovery must be performed by an administrator.
+            seller.sendMessage("§eYour inventory is full. The item remains in a pending return record; do not remove auction data.");
+        }
+    }
+
     public List<Listing> mine(UUID playerId) {
         return store.all().stream().filter(l -> l.sellerId().equals(playerId)).toList();
     }
