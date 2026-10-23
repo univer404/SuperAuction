@@ -2,6 +2,8 @@ package com.superauction;
 
 import com.superauction.auction.AuctionService;
 import com.superauction.command.AuctionCommand;
+import com.superauction.gui.AuctionMenu;
+import com.superauction.gui.SearchWaiter;
 import com.superauction.storage.YamlAuctionStore;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,6 +33,8 @@ public final class SuperAuction extends JavaPlugin {
         command.setExecutor(executor);
         command.setTabCompleter(executor);
         getServer().getPluginManager().registerEvents(auctionService, this);
+        getServer().getPluginManager().registerEvents(new AuctionMenu(this, auctionService), this);
+        getServer().getPluginManager().registerEvents(new SearchWaiter(), this);
         getLogger().info("SuperAuction enabled. YAML storage is active.");
     }
 
