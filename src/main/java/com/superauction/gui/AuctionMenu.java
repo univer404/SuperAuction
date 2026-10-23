@@ -41,7 +41,7 @@ public final class AuctionMenu implements Listener {
 
     public void openBrowse(Player player, String query, int page) {
         List<Listing> listings = service.activeListings(query);
-        int pageSize = 45;
+        int pageSize = Math.max(1, Math.min(45, plugin.getConfig().getInt("search.results-per-page", 45)));
         int pages = Math.max(1, (int)Math.ceil(listings.size() / (double)pageSize));
         int safePage = Math.max(0, Math.min(page, pages - 1));
         Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage), 54,
