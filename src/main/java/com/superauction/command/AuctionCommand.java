@@ -143,7 +143,9 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§7Pending returns: §f" + records.stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count());
                     sender.sendMessage("§7Needs manual review: §f" + records.stream().filter(l -> l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).count());
                     sender.sendMessage("§7Total stored records: §f" + records.size());
-                    sender.sendMessage("§7Storage: §fYAML");
+                    sender.sendMessage("§7Journal transactions: §f" + plugin.getTransactionJournal().all().size());
+                    sender.sendMessage("§7Transactions needing review: §f" + plugin.getTransactionJournal().all().stream().filter(t -> t.stage() == com.superauction.auction.TransactionJournal.Stage.NEEDS_REVIEW).count());
+                    sender.sendMessage("§7Storage: §fYAML + append-only transaction journal");
                 } else if (args.length >= 3 && args[1].equalsIgnoreCase("inspect")) {
                     if (!sender.hasPermission("superauction.admin.inspect")) { sender.sendMessage("§cYou don't have permission."); return true; }
                     try {
@@ -177,6 +179,9 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§eRecovery review only — this command does not move items or money.");
                     sender.sendMessage("§7Records requiring review: §f" + pendingRecords.size());
                     pendingRecords.stream().limit(20).forEach(l -> sender.sendMessage("§f" + l.id() + " §7" + l.status() + " §f" + l.sellerName() + " §7" + AuctionService.niceName(l.item().getType())));
+                    var reviewTransactions = plugin.getTransactionJournal().all().stream().filter(t -> t.stage() == com.superauction.auction.TransactionJournal.Stage.NEEDS_REVIEW).toList();
+                    sender.sendMessage("§7Transactions needing review: §f" + reviewTransactions.size());
+                    reviewTransactions.stream().limit(10).forEach(t -> sender.sendMessage("§f" + t.id() + " §7" + t.stage() + " §f" + t.amount()));
                 } else {
                     sender.sendMessage("§b/ah admin reload §7Reload configuration");
                     sender.sendMessage("§b/ah admin stats §7Show listing count");
