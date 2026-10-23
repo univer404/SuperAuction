@@ -20,7 +20,6 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - `/ah search <text>` searches listing item and seller names.
 - Tagged GUI buttons, cancelled inventory clicks/drags, item detail view, paging, and chat search.
 - YAML persistence uses a temporary file, keeps an `auctions.yml.bak` copy before replacement, and uses atomic replacement where supported.
-- Optional SQLite listing storage is implemented with a bundled JDBC driver, transactional snapshot writes, WAL mode, full synchronous durability, a busy timeout, and a status/creation index. Select it with `storage.type: sqlite`.
 - Invalid YAML or malformed escrow records now stop plugin startup instead of being silently skipped and later overwritten.
 - Search length and auction browser page size honor the bounded configuration values.
 - Admin stats report pending listings, pending returns, and records flagged for manual review.
@@ -34,7 +33,7 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 
 ## Production validation status
 
-Automated CI verifies compilation, unit tests, and the shaded JAR contents. This is not a substitute for a full live-server release test. Before enabling on a live economy server, verify YAML and SQLite startup on the exact Paper/Purpur build, list/cancel/expire flows, full-inventory handling, and recovery after forced process termination. Purchase flow now has conservative runtime handling, but it still requires live Paper/Purpur testing and economy-provider verification before production use.
+Automated CI verifies compilation, unit tests, and the shaded JAR contents. This is not a substitute for a full live-server release test. Before enabling on a live economy server, verify YAML startup on the exact Paper/Purpur build, list/cancel/expire flows, full-inventory handling, and recovery after forced process termination. Purchase flow now has conservative runtime handling, but it still requires live Paper/Purpur testing and economy-provider verification before production use.
 
 ## Important limitations — not production-ready
 
@@ -70,8 +69,8 @@ This snapshot is a work in progress and **must not be used on a live economy ser
 
 ## Storage
 
-YAML and SQLite listing stores are implemented. YAML data is stored in `plugins/SuperAuction/auctions.yml` with a backup at `auctions.yml.bak`. SQLite data is stored in `plugins/SuperAuction/auctions.db`. Changing `storage.type` does not migrate or copy data between backends; back up the server and perform a deliberate migration before switching. MySQL is not implemented, and selecting it will stop plugin startup instead of silently falling back.
+SuperAuction uses YAML-only listing storage. Auction data is stored in `plugins/SuperAuction/auctions.yml`, with a backup at `auctions.yml.bak`. No SQL database, JDBC driver, or database configuration is required. If you previously used SQLite, back up your server and manually migrate/relist any data stored only in `auctions.db` before upgrading; the YAML-only version does not read or convert database files.
 
 ## Safety stance
 
-Purchase processing uses a durable journal and conservative manual-review states, but this does not make Vault calls and inventory mutations atomic. Do not deploy to a live economy until CI passes and forced-crash tests have been completed on the exact Paper/Purpur build and economy provider. Review all `NEEDS_REVIEW` transactions and `FAILED_REQUIRES_REVIEW` listings manually. SQLite support covers listing persistence only; it does not make inventory delivery and Vault transactions atomic.
+Purchase processing uses a durable journal and conservative manual-review states, but this does not make Vault calls and inventory mutations atomic. Do not deploy to a live economy until CI passes and forced-crash tests have been completed on the exact Paper/Purpur build and economy provider. Review all `NEEDS_REVIEW` transactions and `FAILED_REQUIRES_REVIEW` listings manually. YAML persistence does not make inventory delivery and Vault transactions atomic.
