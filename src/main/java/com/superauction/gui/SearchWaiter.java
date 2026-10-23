@@ -14,7 +14,11 @@ import java.util.function.Consumer;
 /** One-shot chat search capture; chat is cancelled only for players actively searching. */
 public final class SearchWaiter implements Listener {
     private static final Map<UUID, Consumer<String>> WAITING = new ConcurrentHashMap<>();
-    public SearchWaiter() {}
+    private final JavaPlugin plugin;
+
+    public SearchWaiter(JavaPlugin plugin) {
+        this.plugin = plugin;
+    }
     static void arm(JavaPlugin plugin, UUID playerId, Consumer<String> callback) {
         WAITING.put(playerId, callback);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> WAITING.remove(playerId), 20L * 30);
@@ -25,7 +29,7 @@ public final class SearchWaiter implements Listener {
         event.setCancelled(true);
         String message=event.getMessage().trim();
         if(message.equalsIgnoreCase("cancel")) { event.getPlayer().sendMessage("§7Search cancelled."); return; }
-        if(message.length()>64) { event.getPlayer().sendMessage("§cSearch is too long (64 characters maximum)."); return; }
+        int maxLength = Math.max(1, Math.min(256, plugin.getConfig().getInt("search.maximum-query-length", 64)));\n        if(message.length()>maxLength) { event.getPlayer().sendMessage("§cSearch is too long (" + maxLength + " characters maximum)."); return; }
         event.getPlayer().getServer().getScheduler().runTask(
                 org.bukkit.plugin.java.JavaPlugin.getProvidingPlugin(SearchWaiter.class),
                 () -> callback.accept(message));
