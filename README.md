@@ -26,13 +26,16 @@ The JAR, if the build succeeds, is written to `target/`. Install Vault and a com
 - Timestamp-based expiration changes active listings to `RETURN_PENDING`.
 - Basic cancellation and pending-return state handling.
 - Price parser unit tests and a GitHub Actions Maven verification workflow.
+- Append-only transaction journal foundation with forced disk writes, validated state transitions, fail-closed loading, and tests.
+- Personal `/ah history` output backed by the journal, plus `/ah admin transaction <id>` and journal review counts.
+- Vault economy provider detection; it does not activate purchases.
 
 ## Important limitations — not production-ready
 
 This snapshot is a work in progress and **must not be used on a live economy server**.
 
 - Purchase is deliberately disabled in the GUI. No money is withdrawn and no item is delivered. This is intentional because Vault operations and file writes cannot be made atomic by this implementation.
-- Transaction history, complete transaction journal/reconciliation, safe automatic pending-item claims, robust crash-safe return delivery, admin recovery tooling, SQLite, MySQL, and PlaceholderAPI are not implemented.
+- Purchase execution and full transaction reconciliation are not implemented; the journal is groundwork only and currently has no real purchases to display. Automatic pending-item claims, robust crash-safe return delivery, actionable recovery tooling, SQLite, MySQL, and PlaceholderAPI are not implemented.
 - The current cancellation delivery sequence is not crash-atomic between inventory mutation and the YAML status write. Treat pending-return records as requiring manual backup/review.
 - A listing confirmation interrupted at an ambiguous point is kept non-purchasable and flagged for review rather than silently deleting its escrow record.
 - The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
@@ -45,7 +48,7 @@ This snapshot is a work in progress and **must not be used on a live economy ser
 - `/ah mine` — view your active and pending-return listings.
 - `/ah search <text>` — search listings.
 - `/ah view <player>` — view listings matching a seller name.
-- `/ah history` — reserved; history is not implemented.
+- `/ah history` — show up to 10 journal transactions involving you (will be empty until purchase processing is implemented).
 - `/ah admin reload` — reload Bukkit configuration.
 
 ## Permissions
