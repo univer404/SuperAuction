@@ -142,11 +142,11 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§7Active listings: §f" + all.size());
                     sender.sendMessage("§7Pending listings: §f" + records.stream().filter(l -> l.status() == Listing.Status.PENDING).count());
                     sender.sendMessage("§7Pending returns: §f" + records.stream().filter(l -> l.status() == Listing.Status.RETURN_PENDING).count());
-                    sender.sendMessage("§7Needs manual review: §f" + records.stream().filter(l -> l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).count());
+                    sender.sendMessage("§7Needs manual review: §f" + records.stream().filter(l -> l.status() == Listing.Status.FAILED_REQUIRES_REVIEW || l.status() == Listing.Status.RETURN_DELIVERY_STARTED).count());
                     sender.sendMessage("§7Total stored records: §f" + records.size());
                     sender.sendMessage("§7Journal transactions: §f" + plugin.getTransactionJournal().all().size());
                     sender.sendMessage("§7Transactions needing review: §f" + plugin.getTransactionJournal().all().stream().filter(t -> t.stage() == com.superauction.auction.TransactionJournal.Stage.NEEDS_REVIEW).count());
-                    sender.sendMessage("§7Storage: §fYAML + append-only transaction journal");
+                    sender.sendMessage("§7Storage: §f" + plugin.getConfig().getString("storage.type", "yaml").toUpperCase(Locale.ROOT) + " + append-only transaction journal");
                 } else if (args.length >= 3 && args[1].equalsIgnoreCase("inspect")) {
                     if (!sender.hasPermission("superauction.admin.inspect")) { sender.sendMessage("§cYou don't have permission."); return true; }
                     try {
@@ -176,7 +176,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     }
                 } else if (args.length >= 2 && args[1].equalsIgnoreCase("recover")) {
                     if (!sender.hasPermission("superauction.admin.recover")) { sender.sendMessage("§cYou don't have permission."); return true; }
-                    var pendingRecords = auctions.allListings().stream().filter(l -> l.status() == Listing.Status.PENDING || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).toList();
+                    var pendingRecords = auctions.allListings().stream().filter(l -> l.status() == Listing.Status.PENDING || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW).toList();
                     sender.sendMessage("§eRecovery review only — this command does not move items or money.");
                     sender.sendMessage("§7Records requiring review: §f" + pendingRecords.size());
                     pendingRecords.stream().limit(20).forEach(l -> sender.sendMessage("§f" + l.id() + " §7" + l.status() + " §f" + l.sellerName() + " §7" + AuctionService.niceName(l.item().getType())));
