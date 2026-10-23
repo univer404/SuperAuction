@@ -24,7 +24,11 @@ public final class AuctionService implements Listener {
     }
 
     public synchronized Listing createListing(Player seller, double price) throws IOException {
-        if (!Double.isFinite(price) || price <= 0) throw new IllegalArgumentException("Price must be a positive finite number.");
+        double minimumPrice = plugin.getConfig().getDouble("listings.minimum-price", 1.0);
+        double maximumPrice = plugin.getConfig().getDouble("listings.maximum-price", 1_000_000_000.0);
+        if (!Double.isFinite(price) || price <= 0 || price < minimumPrice || price > maximumPrice) {
+            throw new IllegalArgumentException("Price must be between " + minimumPrice + " and " + maximumPrice + ".");
+        }
         var hand = seller.getInventory().getItemInMainHand();
         if (hand.getType().isAir()) throw new IllegalArgumentException("Hold the item you want to sell in your main hand.");
         if (plugin.getConfig().getStringList("listings.blacklist").contains(hand.getType().name())) {
@@ -32,13 +36,14 @@ public final class AuctionService implements Listener {
         }
         List<Listing> existing = store.all();
         long activeCount = existing.stream()
-                .filter(l -> l.sellerId().equals(seller.getUniqueId()) && l.status() == Listing.Status.ACTIVE)
+                 .filter(l -> l.sellerId().equals(seller.getUniqueId())\n                        && (l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.PENDING))
                 .count();
         if (activeCount >= Math.max(0, plugin.getConfig().getInt("listings.default-limit", 10))) {
             throw new IllegalArgumentException("You have reached your listing limit.");
         }
         long serverLimit = Math.max(1, plugin.getConfig().getLong("listings.maximum-server-listings", 10_000));
-        long serverActiveCount = existing.stream().filter(l -> l.status() == Listing.Status.ACTIVE).count();
+        long serverActiveCount = existing.stream()
+                .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.PENDING).count();
         if (serverActiveCount >= serverLimit) {
             throw new IllegalArgumentException("The auction house has reached its server-wide listing limit.");
         }
