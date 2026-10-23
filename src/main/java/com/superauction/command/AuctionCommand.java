@@ -24,6 +24,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
         this.plugin = plugin;
         this.auctions = auctions;
         this.menus = new AuctionMenu(plugin, auctions);
+        plugin.getServer().getPluginManager().registerEvents(this.menus, plugin);
     }
 
     @Override
@@ -62,7 +63,7 @@ public final class AuctionCommand implements CommandExecutor, TabCompleter {
                     double min = plugin.getConfig().getDouble("listings.minimum-price", 1);
                     double max = plugin.getConfig().getDouble("listings.maximum-price", 1_000_000_000);
                     if (price < min || price > max) throw new IllegalArgumentException("Price must be between " + min + " and " + max + ".");
-                    auctions.createListing(player, price);
+                    menus.openListingConfirmation(player, price);
                 } catch (IllegalArgumentException | IOException exception) {
                     player.sendMessage("§c" + (exception instanceof IOException ? "Could not safely save the listing. Your item was not listed." : exception.getMessage()));
                     plugin.getLogger().warning("Listing attempt failed: " + exception.getMessage());
