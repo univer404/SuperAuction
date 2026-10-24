@@ -34,7 +34,7 @@ jobs:
           fi
           echo "Verified plugin descriptor and no bundled database driver in $jar_file"
       - name: Upload verified plugin JAR
-        if: success() && github.event_name != 'pull_request'
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: SuperAuction-plugin
