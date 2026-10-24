@@ -1,5 +1,5 @@
 name: SuperAuction
-version: 0.1.0-SNAPSHOT
+version: 0.1.0
 main: com.superauction.SuperAuction
 api-version: '1.21.11'
 description: A configurable player-to-player auction house.
