@@ -1,0 +1,52 @@
+# SuperAuction GUI configuration. Sizes must be multiples of 9 between 9 and 54.
+menus:
+  browse:
+    title: '&0SuperAuction &8• &7%page%/%pages%'
+    size: 54
+    content-slots: 45
+    buttons:
+      previous: {slot: 45, material: ARROW, name: '&ePrevious page', lore: ['&7Go to the previous page']}
+      search: {slot: 48, material: COMPASS, name: '&bSearch', lore: ['&7Search listings']}
+      refresh: {slot: 49, material: HOPPER, name: '&bRefresh', lore: ['&7Refresh listings']}
+      mine: {slot: 50, material: CHEST, name: '&bMy listings', lore: ['&7Manage your listings']}
+      history: {slot: 51, material: BOOK, name: '&bHistory', lore: ['&7View transaction history']}
+      next: {slot: 53, material: ARROW, name: '&eNext page', lore: ['&7Go to the next page']}
+    listing-lore:
+      - '&8&m----------------'
+      - '&7Seller: &f%seller%'
+      - '&7Price: &a$%price%'
+      - '&7Expires: &f%expires%'
+      - '&eClick to inspect'
+  confirm-listing:
+    title: '&0Confirm Listing'
+    size: 27
+    buttons:
+      confirm-listing: {slot: 11, material: LIME_CONCRETE, name: '&aConfirm Listing', lore: ['&7List this item for sale']}
+      cancel-listing-confirmation: {slot: 15, material: RED_CONCRETE, name: '&cCancel', lore: ['&7Return without listing']}
+  mine:
+    title: '&0My Auction Listings'
+    size: 54
+    content-slots: 45
+    buttons:
+      previous: {slot: 45, material: ARROW, name: '&ePrevious', lore: ['&7Previous page']}
+      browse: {slot: 49, material: SPECTRAL_ARROW, name: '&bBack to Auction House', lore: ['&7Return to listings']}
+      next: {slot: 53, material: ARROW, name: '&eNext', lore: ['&7Next page']}
+  inspect:
+    title: '&0Listing Details'
+    size: 27
+    preview-slot: 13
+    buttons:
+      purchase: {slot: 11, material: LIME_CONCRETE, name: '&aPurchase', lore: ['&7Buy this listing']}
+      browse: {slot: 15, material: ARROW, name: '&eBack', lore: ['&7Return to auction house']}
+  shulker-preview:
+    title: '&0Shulker Contents'
+    size: 54
+    buttons:
+      close: {slot: 49, material: BARRIER, name: '&cClose', lore: ['&7Close preview']}
+  manage:
+    title: '&0Manage Listing'
+    size: 27
+    preview-slot: 13
+    buttons:
+      cancel-listing: {slot: 11, material: RED_CONCRETE, name: '&cCancel Listing', lore: ['&7Cancel and return the item']}
+      mine: {slot: 15, material: ARROW, name: '&eBack', lore: ['&7Return to your listings']}
