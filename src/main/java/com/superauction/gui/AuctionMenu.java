@@ -70,12 +70,12 @@ public final class AuctionMenu implements Listener {
             }
             if (i < inventory.getSize() - 9) inventory.setItem(i, icon);
         }
-        button(inventory, 45, Material.ARROW, "&ePrevious page", "previous", null, safePage);
-        button(inventory, 48, Material.COMPASS, "&bSearch", "search", null, safePage);
-        button(inventory, 49, Material.HOPPER, "&bRefresh", "refresh", null, safePage);
-        button(inventory, 50, Material.CHEST, "&bMy listings", "mine", null, safePage);
-        button(inventory, 51, Material.BOOK, "&bHistory", "history", null, safePage);
-        button(inventory, 53, Material.ARROW, "&eNext page", "next", null, safePage);
+        button(inventory, inventory.getSize()-9, Material.ARROW, "&ePrevious page", "previous", null, safePage);
+        button(inventory, inventory.getSize()-6, Material.COMPASS, "&bSearch", "search", null, safePage);
+        button(inventory, inventory.getSize()-5, Material.HOPPER, "&bRefresh", "refresh", null, safePage);
+        button(inventory, inventory.getSize()-4, Material.CHEST, "&bMy listings", "mine", null, safePage);
+        button(inventory, inventory.getSize()-3, Material.BOOK, "&bHistory", "history", null, safePage);
+        button(inventory, inventory.getSize()-1, Material.ARROW, "&eNext page", "next", null, safePage);
         player.openInventory(inventory);
     }
 
@@ -97,7 +97,7 @@ public final class AuctionMenu implements Listener {
             lore.add(color("&7Duration: &f" + plugin.getConfig().getLong("listings.default-duration-hours", 24) + " hours"));
             meta.setLore(lore); preview.setItemMeta(meta);
         }
-        inv.setItem(13, preview);
+        inv.setItem(menuSlot(gui, "confirm-listing.preview-slot", 13, inv.getSize()), preview);
         button(inv, 11, Material.LIME_CONCRETE, "&aConfirm Listing", "confirm-listing", null, 0);
         button(inv, 15, Material.RED_CONCRETE, "&cCancel", "cancel-listing-confirmation", null, 0);
         player.openInventory(inv);
@@ -108,11 +108,14 @@ public final class AuctionMenu implements Listener {
                 .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW)
                 .toList();
         YamlConfiguration gui = gui();
-        Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), menuSize(gui, "mine", 54),
+        int size = menuSize(gui, "mine", 54);
+        int pageSize = Math.max(1, Math.min(45, size - 9));
+        int maxPage = Math.max(0, (listings.size() - 1) / pageSize);
+        int safePage = Math.max(0, Math.min(page, maxPage));
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", safePage), size,
                 color(menuTitle(gui, "mine", "&0My Auction Listings")));
-        int safePage = Math.max(0, Math.min(page, Math.max(0, (listings.size()-1)/45)));
-        for (int i=0; i<45 && safePage*45+i<listings.size(); i++) {
-            Listing listing=listings.get(safePage*45+i);
+        for (int i=0; i<pageSize && safePage*pageSize+i<listings.size(); i++) {
+            Listing listing=listings.get(safePage*pageSize+i);
             ItemStack icon=listing.item();
             ItemMeta meta=icon.getItemMeta();
             if(meta!=null){
@@ -124,11 +127,11 @@ public final class AuctionMenu implements Listener {
                 meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing.id().toString());
                 icon.setItemMeta(meta);
             }
-            inventory.setItem(i,icon);
+            if (i < inventory.getSize() - 9) inventory.setItem(i,icon);
         }
-        button(inventory,45,Material.ARROW,"&ePrevious","previous",null,safePage);
-        button(inventory,49,Material.SPECTRAL_ARROW,"&bBack to Auction House","browse",null,0);
-        button(inventory,53,Material.ARROW,"&eNext","next",null,safePage);
+        button(inventory,inventory.getSize()-9,Material.ARROW,"&ePrevious","previous",null,safePage);
+        button(inventory,inventory.getSize()-5,Material.SPECTRAL_ARROW,"&bBack to Auction House","browse",null,0);
+        button(inventory,inventory.getSize()-1,Material.ARROW,"&eNext","next",null,safePage);
         player.openInventory(inventory);
     }
 
