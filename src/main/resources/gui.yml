@@ -20,6 +20,13 @@ menus:
   confirm-listing:
     title: '&0Confirm Listing'
     size: 27
+    preview-slot: 13
+    preview-lore:
+      - '&7Quantity: &f%quantity%'
+      - '&7Asking price: &a$%price%'
+      - '&7Seller fee: &fDisabled (0%)'
+      - '&7Net proceeds: &a$%price%'
+      - '&7Duration: &f%duration% hours'
     buttons:
       confirm-listing: {slot: 11, material: LIME_CONCRETE, name: '&aConfirm Listing', lore: ['&7List this item for sale']}
       cancel-listing-confirmation: {slot: 15, material: RED_CONCRETE, name: '&cCancel', lore: ['&7Return without listing']}
@@ -27,6 +34,10 @@ menus:
     title: '&0My Auction Listings'
     size: 54
     content-slots: 45
+    listing-lore:
+      - '&7Price: &a$%price%'
+      - '&7Status: &f%status%'
+      - '&eClick to manage'
     buttons:
       previous: {slot: 45, material: ARROW, name: '&ePrevious', lore: ['&7Previous page']}
       browse: {slot: 49, material: SPECTRAL_ARROW, name: '&bBack to Auction House', lore: ['&7Return to listings']}
@@ -35,6 +46,10 @@ menus:
     title: '&0Listing Details'
     size: 27
     preview-slot: 13
+    listing-lore:
+      - '&7Seller: &f%seller%'
+      - '&7Price: &a$%price%'
+      - '&7Expires: &f%expires%'
     buttons:
       purchase: {slot: 11, material: LIME_CONCRETE, name: '&aPurchase', lore: ['&7Buy this listing']}
       browse: {slot: 15, material: ARROW, name: '&eBack', lore: ['&7Return to auction house']}
