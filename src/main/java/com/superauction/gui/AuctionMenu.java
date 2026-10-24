@@ -15,6 +15,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.configuration.file.YamlConfiguration;
+import java.io.File;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.persistence.PersistentDataType;
@@ -44,8 +46,10 @@ public final class AuctionMenu implements Listener {
         int pageSize = Math.max(1, Math.min(45, plugin.getConfig().getInt("search.results-per-page", 45)));
         int pages = Math.max(1, (int)Math.ceil(listings.size() / (double)pageSize));
         int safePage = Math.max(0, Math.min(page, pages - 1));
-        Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage), 54,
-                color("&0SuperAuction &8• &7" + (safePage + 1) + "/" + pages));
+        YamlConfiguration gui = gui();
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage),
+                menuSize(gui, "browse", 54), color(menuTitle(gui, "browse", "&0SuperAuction &8• &7%page%/%pages%")
+                .replace("%page%", String.valueOf(safePage + 1)).replace("%pages%", String.valueOf(pages))));
         int start = safePage * pageSize;
         for (int i = 0; i < pageSize && start + i < listings.size(); i++) {
             Listing listing = listings.get(start + i);
@@ -53,11 +57,10 @@ public final class AuctionMenu implements Listener {
             ItemMeta meta = icon.getItemMeta();
             if (meta != null) {
                 List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-                lore.add(color("&8&m----------------"));
-                lore.add(color("&7Seller: &f" + listing.sellerName()));
-                lore.add(color("&7Price: &a$" + format(listing.price())));
-                lore.add(color("&7Expires: &f" + remaining(listing.expiresAt())));
-                lore.add(color("&eClick to inspect"));
+                List<String> configuredLore = gui.getStringList("menus.browse.listing-lore");
+                if (configuredLore.isEmpty()) configuredLore = List.of("&8&m----------------", "&7Seller: &f%seller%", "&7Price: &a$%price%", "&7Expires: &f%expires%", "&eClick to inspect");
+                for (String line : configuredLore) lore.add(color(line.replace("%seller%", listing.sellerName())
+                        .replace("%price%", format(listing.price())).replace("%expires%", remaining(listing.expiresAt()))));
                 meta.setLore(lore);
                 meta.getPersistentDataContainer().set(listingKey, PersistentDataType.STRING, listing.id().toString());
                 icon.setItemMeta(meta);
@@ -77,7 +80,9 @@ public final class AuctionMenu implements Listener {
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand.getType().isAir()) { player.sendMessage(color("&cHold the item you want to sell.")); return; }
         pendingListings.put(player.getUniqueId(), new PendingListing(hand.clone(), price));
-        Inventory inv = Bukkit.createInventory(new MenuHolder("confirm-listing", "", 0), 27, color("&0Confirm Listing"));
+        YamlConfiguration gui = gui();
+        Inventory inv = Bukkit.createInventory(new MenuHolder("confirm-listing", "", 0), menuSize(gui, "confirm-listing", 27),
+                color(menuTitle(gui, "confirm-listing", "&0Confirm Listing")));
         ItemStack preview = hand.clone();
         ItemMeta meta = preview.getItemMeta();
         if (meta != null) {
@@ -99,7 +104,9 @@ public final class AuctionMenu implements Listener {
         List<Listing> listings = service.mine(player.getUniqueId()).stream()
                 .filter(l -> l.status() == Listing.Status.ACTIVE || l.status() == Listing.Status.RETURN_PENDING || l.status() == Listing.Status.RETURN_DELIVERY_STARTED || l.status() == Listing.Status.FAILED_REQUIRES_REVIEW)
                 .toList();
-        Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), 54, color("&0My Auction Listings"));
+        YamlConfiguration gui = gui();
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", Math.max(0,page)), menuSize(gui, "mine", 54),
+                color(menuTitle(gui, "mine", "&0My Auction Listings")));
         int safePage = Math.max(0, Math.min(page, Math.max(0, (listings.size()-1)/45)));
         for (int i=0; i<45 && safePage*45+i<listings.size(); i++) {
             Listing listing=listings.get(safePage*45+i);
@@ -129,7 +136,9 @@ public final class AuctionMenu implements Listener {
             openBrowse(player, "", 0);
             return;
         }
-        Inventory inventory = Bukkit.createInventory(new MenuHolder("inspect", "", 0, id), 27, color("&0Listing Details"));
+        YamlConfiguration gui = gui();
+        Inventory inventory = Bukkit.createInventory(new MenuHolder("inspect", "", 0, id), menuSize(gui, "inspect", 27),
+                color(menuTitle(gui, "inspect", "&0Listing Details")));
         ItemStack icon=listing.item();
         ItemMeta meta=icon.getItemMeta();
         if(meta!=null){
@@ -243,7 +252,9 @@ public final class AuctionMenu implements Listener {
             player.sendMessage(color("&cThis shulker box could not be previewed safely."));
             return;
         }
-        Inventory preview = Bukkit.createInventory(new MenuHolder("shulker-preview", "", 0), 54, color("&0Shulker Contents"));
+        YamlConfiguration gui = gui();
+        Inventory preview = Bukkit.createInventory(new MenuHolder("shulker-preview", "", 0), menuSize(gui, "shulker-preview", 54),
+                color(menuTitle(gui, "shulker-preview", "&0Shulker Contents")));
         ItemStack[] contents = box.getInventory().getContents();
         for (int slot = 0; slot < Math.min(27, contents.length); slot++) {
             ItemStack content = contents[slot];
@@ -256,8 +267,9 @@ public final class AuctionMenu implements Listener {
     private void openManage(Player player, UUID id) {
         Listing listing=service.find(id);
         if(listing==null) {openMine(player,0);return;}
-        Inventory inv=Bukkit.createInventory(new MenuHolder("manage","",0,id),27,color("&0Manage Listing"));
-        inv.setItem(13,listing.item());
+        YamlConfiguration gui = gui();
+        Inventory inv=Bukkit.createInventory(new MenuHolder("manage","",0,id),menuSize(gui,"manage",27),color(menuTitle(gui,"manage","&0Manage Listing")));
+        inv.setItem(menuSlot(gui, "manage.preview-slot", 13, inv.getSize()),listing.item());
         button(inv,11,Material.RED_CONCRETE,"&cCancel Listing","cancel-listing",id.toString(),0);
         button(inv,15,Material.ARROW,"&eBack","mine",null,0);
         player.openInventory(inv);
@@ -269,14 +281,38 @@ public final class AuctionMenu implements Listener {
         }
     }
 
+    private YamlConfiguration gui() {
+        return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "gui.yml"));
+    }
+    private String menuTitle(YamlConfiguration gui, String menu, String fallback) {
+        return gui.getString("menus." + menu + ".title", fallback);
+    }
+    private int menuSize(YamlConfiguration gui, String menu, int fallback) {
+        int size = gui.getInt("menus." + menu + ".size", fallback);
+        return size >= 9 && size <= 54 && size % 9 == 0 ? size : fallback;
+    }
+    private int menuSlot(YamlConfiguration gui, String path, int fallback, int size) {
+        int slot = gui.getInt(path, fallback);
+        return slot >= 0 && slot < size ? slot : fallback;
+    }
     private void button(Inventory inv,int slot,Material material,String name,String action,String listing,int page) {
-        ItemStack item=new ItemStack(material);
-        ItemMeta meta=item.getItemMeta();
-        meta.setDisplayName(color(name));
+        YamlConfiguration gui = gui();
+        String menu = inv.getHolder() instanceof MenuHolder holder ? holder.type : "";
+        String path = "menus." + menu + ".buttons." + action;
+        int configuredSlot = gui.getInt(path + ".slot", slot);
+        if (configuredSlot < 0 || configuredSlot >= inv.getSize()) configuredSlot = slot;
+        String configuredMaterial = gui.getString(path + ".material", material.name());
+        Material parsed = Material.matchMaterial(configuredMaterial);
+        if (parsed == null || !parsed.isItem()) parsed = material;
+        ItemStack item = new ItemStack(parsed);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(color(gui.getString(path + ".name", name)));
+        if (gui.contains(path + ".lore")) meta.setLore(gui.getStringList(path + ".lore").stream().map(AuctionMenu::color).toList());
         meta.getPersistentDataContainer().set(actionKey,PersistentDataType.STRING,action);
         if(listing!=null) meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing);
         meta.getPersistentDataContainer().set(pageKey,PersistentDataType.INTEGER,page);
-        item.setItemMeta(meta); inv.setItem(slot,item);
+        item.setItemMeta(meta);
+        inv.setItem(configuredSlot,item);
     }
     private static String format(double price){return new DecimalFormat("#,##0.##").format(price);}
     private static String remaining(long end){long seconds=Math.max(0,(end-System.currentTimeMillis())/1000);return seconds/3600+"h "+(seconds%3600)/60+"m";}
