@@ -25,6 +25,7 @@ public final class SuperAuction extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        saveResourceIfMissing("gui.yml");
         try {
             String storageType = getConfig().getString("storage.type", "yaml").trim().toLowerCase(java.util.Locale.ROOT);
             AuctionStore store = switch (storageType) {
@@ -68,6 +69,17 @@ public final class SuperAuction extends JavaPlugin {
             }
         }, 20L, intervalSeconds * 20L);
         getLogger().info("SuperAuction enabled. " + getConfig().getString("storage.type", "yaml").toUpperCase(java.util.Locale.ROOT) + " storage is active.");
+    }
+
+    private void saveResourceIfMissing(String path) {
+        java.io.File target = new java.io.File(getDataFolder(), path);
+        if (target.exists()) return;
+        java.io.File parent = target.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            getLogger().severe("Could not create configuration directory for " + path);
+            return;
+        }
+        saveResource(path, false);
     }
 
     @Override
