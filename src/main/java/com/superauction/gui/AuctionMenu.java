@@ -1,5 +1,7 @@
 package com.superauction.gui;
 
+import com.superauction.util.GuiText;
+
 import com.superauction.SuperAuction;
 import com.superauction.auction.AuctionService;
 import com.superauction.auction.Listing;
@@ -51,7 +53,7 @@ public final class AuctionMenu implements Listener {
         int pages = Math.max(1, (int)Math.ceil(listings.size() / (double)pageSize));
         int safePage = Math.max(0, Math.min(page, pages - 1));
         Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage),
-                inventorySize, color(menuTitle(gui, "browse", "&0SuperAuction &8• &7%page%/%pages%")
+                inventorySize, GuiText.component(menuTitle(gui, "browse", "&0SuperAuction &8• &7%page%/%pages%")
                 .replace("%page%", String.valueOf(safePage + 1)).replace("%pages%", String.valueOf(pages))));
         int start = safePage * pageSize;
         for (int i = 0; i < pageSize && start + i < listings.size(); i++) {
@@ -64,7 +66,7 @@ public final class AuctionMenu implements Listener {
                 if (configuredLore.isEmpty()) configuredLore = List.of("&8&m----------------", "&7Seller: &f%seller%", "&7Price: &a$%price%", "&7Expires: &f%expires%", "&eClick to inspect");
                 for (String line : configuredLore) lore.add(color(line.replace("%seller%", listing.sellerName())
                         .replace("%price%", format(listing.price())).replace("%expires%", remaining(listing.expiresAt()))));
-                meta.setLore(lore);
+                meta.lore(lore.stream().map(GuiText::component).toList());
                 meta.getPersistentDataContainer().set(listingKey, PersistentDataType.STRING, listing.id().toString());
                 icon.setItemMeta(meta);
             }
@@ -314,12 +316,15 @@ public final class AuctionMenu implements Listener {
         int configuredSlot = gui.getInt(path + ".slot", fallbackSlot);
         if (configuredSlot < 0 || configuredSlot >= inv.getSize()) configuredSlot = fallbackSlot;
         String configuredMaterial = gui.getString(path + ".material", material.name());
-        Material parsed = Material.matchMaterial(configuredMaterial);
-        if (parsed == null || !parsed.isItem()) parsed = material;
+        Material parsed = configuredMaterial == null ? null : Material.matchMaterial(configuredMaterial.trim());
+        if (parsed == null || !parsed.isItem()) {
+            plugin.getLogger().warning("Invalid GUI material at gui.yml " + path + ": " + configuredMaterial + ". Using " + material.name() + ".");
+            parsed = material;
+        }
         ItemStack item = new ItemStack(parsed);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(color(gui.getString(path + ".name", name)));
-        if (gui.contains(path + ".lore")) meta.setLore(gui.getStringList(path + ".lore").stream().map(AuctionMenu::color).toList());
+        meta.displayName(GuiText.component(gui.getString(path + ".name", name)));
+        if (gui.contains(path + ".lore")) meta.lore(gui.getStringList(path + ".lore").stream().map(GuiText::component).toList());
         meta.getPersistentDataContainer().set(actionKey,PersistentDataType.STRING,action);
         if(listing!=null) meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing);
         meta.getPersistentDataContainer().set(pageKey,PersistentDataType.INTEGER,page);
@@ -328,7 +333,7 @@ public final class AuctionMenu implements Listener {
     }
     private static String format(double price){return new DecimalFormat("#,##0.##").format(price);}
     private static String remaining(long end){long seconds=Math.max(0,(end-System.currentTimeMillis())/1000);return seconds/3600+"h "+(seconds%3600)/60+"m";}
-    private static String color(String text){return ChatColor.translateAlternateColorCodes('&',text);}
+    private static String color(String text){return text == null ? "" : text;}
     private record PendingListing(ItemStack item, double price) { }
     private static final class MenuHolder implements InventoryHolder {
         final String type,query; final int page; final UUID listingId;
