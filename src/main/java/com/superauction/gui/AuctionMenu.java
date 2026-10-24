@@ -87,13 +87,13 @@ public final class AuctionMenu implements Listener {
         pendingListings.put(player.getUniqueId(), new PendingListing(hand.clone(), price));
         YamlConfiguration gui = gui();
         Inventory inv = Bukkit.createInventory(new MenuHolder("confirm-listing", "", 0), menuSize(gui, "confirm-listing", 27),
-                color(menuTitle(gui, "confirm-listing", "&0Confirm Listing")));
+                GuiText.component(menuTitle(gui, "confirm-listing", "&0Confirm Listing")));
         ItemStack preview = hand.clone();
         ItemMeta meta = preview.getItemMeta();
         if (meta != null) {
             Map<String,String> values = Map.of("%quantity%", String.valueOf(hand.getAmount()),
                     "%price%", format(price), "%duration%", String.valueOf(plugin.getConfig().getLong("listings.default-duration-hours", 24)));
-            meta.setLore(renderLore(gui, "confirm-listing.preview-lore", List.of("&7Quantity: &f%quantity%", "&7Asking price: &a$%price%",
+            meta.lore(renderLore(gui, "confirm-listing.preview-lore", List.of("&7Quantity: &f%quantity%", "&7Asking price: &a$%price%",
                     "&7Seller fee: &fDisabled (0%)", "&7Net proceeds: &a$%price%", "&7Duration: &f%duration% hours"), values));
             preview.setItemMeta(meta);
         }
@@ -122,7 +122,7 @@ public final class AuctionMenu implements Listener {
                 List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
                 lore.addAll(renderLore(gui, "mine.listing-lore", List.of("&7Price: &a$%price%", "&7Status: &f%status%", "&eClick to manage"),
                         Map.of("%price%", format(listing.price()), "%status%", String.valueOf(listing.status()))));
-                meta.setLore(lore);
+                meta.lore(lore.stream().map(GuiText::component).toList());
                 meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing.id().toString());
                 icon.setItemMeta(meta);
             }
@@ -316,7 +316,10 @@ public final class AuctionMenu implements Listener {
         int configuredSlot = gui.getInt(path + ".slot", fallbackSlot);
         if (configuredSlot < 0 || configuredSlot >= inv.getSize()) configuredSlot = fallbackSlot;
         String configuredMaterial = gui.getString(path + ".material", material.name());
-        Material parsed = configuredMaterial == null ? null : Material.matchMaterial(configuredMaterial.trim());
+        String materialName = configuredMaterial == null ? "" : configuredMaterial.trim();
+        if (materialName.regionMatches(true, 0, "minecraft:", 0, 10)) materialName = materialName.substring(10);
+        materialName = materialName.replace(' ', '_');
+        Material parsed = Material.matchMaterial(materialName);
         if (parsed == null || !parsed.isItem()) {
             plugin.getLogger().warning("Invalid GUI material at gui.yml " + path + ": " + configuredMaterial + ". Using " + material.name() + ".");
             parsed = material;
