@@ -44,8 +44,8 @@ This snapshot is a work in progress and **must not be used on a live economy ser
 - Purchase execution and full transaction reconciliation are not implemented; the journal is groundwork only and currently has no real purchases to display. Automatic pending-item claims and complete actionable recovery tooling are not implemented. Return delivery uses a conservative manual-review state when its outcome is ambiguous. MySQL is not implemented. PlaceholderAPI placeholders are available when PlaceholderAPI is installed, but player transaction counts will remain zero until purchase processing is enabled.
 - Return delivery now writes `RETURN_DELIVERY_STARTED` durably before touching the player inventory. If a crash or save failure occurs after that point, the record is exposed for manual review and is never automatically redelivered. This avoids automatic duplication, but cannot guarantee exactly-once delivery across Minecraft inventory and disk writes; an administrator must reconcile ambiguous records.
 - A listing confirmation interrupted at an ambiguous point is kept non-purchasable and flagged for review rather than silently deleting its escrow record.
-- The inventory GUI has a compact dark theme, but not every GUI setting is wired to its YAML layout file yet.
-- No claim is made that compilation, automated tests, Paper/Purpur runtime behavior, or the full listing/purchase lifecycle have passed. Check the Actions tab for actual build results.
+- The editable `gui.yml` configures menu titles, inventory sizes, item slots, button materials, display names, and lore for the supported auction menus.
+- GitHub Actions verifies compilation, unit tests, and JAR packaging. A live Paper/Purpur runtime test and the full listing/purchase lifecycle still require manual validation.
 
 ## Commands
 
