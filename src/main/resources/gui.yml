@@ -1,4 +1,6 @@
 # SuperAuction GUI configuration. Sizes must be multiples of 9 between 9 and 54.
+# Text formats: MiniMessage tags (<#RRGGBB>, <gradient:#...:#...>, <rainbow>, <bold>, <italic>, etc.), legacy &a/&l codes, RGB &#RRGGBB and &x&F&F&0&0&A&A are supported.
+# Materials: use valid Bukkit material names such as DIAMOND_BLOCK, minecraft:diamond_block, or RED_STAINED_GLASS_PANE.
 menus:
   browse:
     title: '&0SuperAuction &8• &7%page%/%pages%'
