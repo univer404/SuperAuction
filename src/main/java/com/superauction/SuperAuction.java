@@ -6,7 +6,6 @@ import com.superauction.command.AuctionCommand;
 import com.superauction.gui.AuctionMenu;
 import com.superauction.gui.SearchWaiter;
 import com.superauction.storage.AuctionStore;
-import com.superauction.storage.SQLiteAuctionStore;
 import com.superauction.storage.YamlAuctionStore;
 import com.superauction.placeholder.SuperAuctionExpansion;
 import org.bukkit.command.PluginCommand;
@@ -27,13 +26,11 @@ public final class SuperAuction extends JavaPlugin {
         saveDefaultConfig();
         saveResourceIfMissing("gui.yml");
         try {
-            String storageType = getConfig().getString("storage.type", "yaml").trim().toLowerCase(java.util.Locale.ROOT);
-            AuctionStore store = switch (storageType) {
-                case "yaml" -> new YamlAuctionStore(this);
-                case "sqlite" -> new SQLiteAuctionStore(this);
-                case "mysql" -> throw new IOException("MySQL storage is not implemented yet. Set storage.type to yaml or sqlite.");
-                default -> throw new IOException("Unknown storage.type '" + storageType + "'. Supported values: yaml, sqlite.");
-            };
+            String storageType = getConfig().getString("storage.type", "yaml");
+            if (storageType == null || !storageType.trim().equalsIgnoreCase("yaml")) {
+                throw new IOException("SuperAuction now supports YAML-only storage. Set storage.type: yaml in config.yml. If you previously used SQLite, migrate/restore your auction data before restarting.");
+            }
+            AuctionStore store = new YamlAuctionStore(this);
             store.load();
             transactionJournal = new TransactionJournal(getDataFolder().toPath().resolve("transactions.log"));
             transactionJournal.load();
