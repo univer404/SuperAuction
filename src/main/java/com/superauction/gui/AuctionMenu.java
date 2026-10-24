@@ -89,13 +89,11 @@ public final class AuctionMenu implements Listener {
         ItemStack preview = hand.clone();
         ItemMeta meta = preview.getItemMeta();
         if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(color("&7Quantity: &f" + hand.getAmount()));
-            lore.add(color("&7Asking price: &a$" + format(price)));
-            lore.add(color("&7Seller fee: &fDisabled (0%)"));
-            lore.add(color("&7Net proceeds: &a$" + format(price)));
-            lore.add(color("&7Duration: &f" + plugin.getConfig().getLong("listings.default-duration-hours", 24) + " hours"));
-            meta.setLore(lore); preview.setItemMeta(meta);
+            Map<String,String> values = Map.of("%quantity%", String.valueOf(hand.getAmount()),
+                    "%price%", format(price), "%duration%", String.valueOf(plugin.getConfig().getLong("listings.default-duration-hours", 24)));
+            meta.setLore(renderLore(gui, "confirm-listing.preview-lore", List.of("&7Quantity: &f%quantity%", "&7Asking price: &a$%price%",
+                    "&7Seller fee: &fDisabled (0%)", "&7Net proceeds: &a$%price%", "&7Duration: &f%duration% hours"), values));
+            preview.setItemMeta(meta);
         }
         inv.setItem(menuSlot(gui, "confirm-listing.preview-slot", 13, inv.getSize()), preview);
         button(inv, 11, Material.LIME_CONCRETE, "&aConfirm Listing", "confirm-listing", null, 0);
@@ -120,9 +118,8 @@ public final class AuctionMenu implements Listener {
             ItemMeta meta=icon.getItemMeta();
             if(meta!=null){
                 List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
-                lore.add(color("&7Price: &a$"+format(listing.price())));
-                lore.add(color("&7Status: &f"+listing.status()));
-                lore.add(color("&eClick to manage"));
+                lore.addAll(renderLore(gui, "mine.listing-lore", List.of("&7Price: &a$%price%", "&7Status: &f%status%", "&eClick to manage"),
+                        Map.of("%price%", format(listing.price()), "%status%", String.valueOf(listing.status()))));
                 meta.setLore(lore);
                 meta.getPersistentDataContainer().set(listingKey,PersistentDataType.STRING,listing.id().toString());
                 icon.setItemMeta(meta);
@@ -149,12 +146,11 @@ public final class AuctionMenu implements Listener {
         ItemMeta meta=icon.getItemMeta();
         if(meta!=null){
             List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
-            lore.add(color("&7Seller: &f"+listing.sellerName()));
-            lore.add(color("&7Price: &a$"+format(listing.price())));
-            lore.add(color("&7Expires: &f"+remaining(listing.expiresAt())));
+            lore.addAll(renderLore(gui, "inspect.listing-lore", List.of("&7Seller: &f%seller%", "&7Price: &a$%price%", "&7Expires: &f%expires%"),
+                    Map.of("%seller%", listing.sellerName(), "%price%", format(listing.price()), "%expires%", remaining(listing.expiresAt()))));
             meta.setLore(lore); icon.setItemMeta(meta);
         }
-        inventory.setItem(13,icon);
+        inventory.setItem(menuSlot(gui, "inspect.preview-slot", 13, inventory.getSize()),icon);
         button(inventory,11,Material.LIME_CONCRETE,"&aPurchase","purchase",id.toString(),0);
         button(inventory,15,Material.ARROW,"&eBack","browse","",0);
         player.openInventory(inventory);
@@ -296,6 +292,15 @@ public final class AuctionMenu implements Listener {
     private int menuSize(YamlConfiguration gui, String menu, int fallback) {
         int size = gui.getInt("menus." + menu + ".size", fallback);
         return size >= 9 && size <= 54 && size % 9 == 0 ? size : fallback;
+    }
+    private List<String> renderLore(YamlConfiguration gui, String path, List<String> fallback, Map<String,String> replacements) {
+        List<String> lines = gui.contains(path) ? gui.getStringList(path) : fallback;
+        List<String> rendered = new ArrayList<>();
+        for (String line : lines) {
+            for (var entry : replacements.entrySet()) line = line.replace(entry.getKey(), entry.getValue());
+            rendered.add(color(line));
+        }
+        return rendered;
     }
     private int menuSlot(YamlConfiguration gui, String path, int fallback, int size) {
         int slot = gui.getInt(path, fallback);
