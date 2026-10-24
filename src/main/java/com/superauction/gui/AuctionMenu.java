@@ -107,7 +107,7 @@ public final class AuctionMenu implements Listener {
                 .toList();
         YamlConfiguration gui = gui();
         int size = menuSize(gui, "mine", 54);
-        int pageSize = Math.max(1, Math.min(45, size - 9));
+        int pageSize = Math.max(1, Math.min(Math.min(45, size - 9), gui.getInt("menus.mine.content-slots", 45)));
         int maxPage = Math.max(0, (listings.size() - 1) / pageSize);
         int safePage = Math.max(0, Math.min(page, maxPage));
         Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", safePage), size,
