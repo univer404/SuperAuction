@@ -27,6 +27,7 @@ public final class TransactionJournal {
         ITEM_DELIVERED,
         SELLER_PAID,
         COMPLETE,
+        ABORTED,
         NEEDS_REVIEW
     }
 
@@ -120,6 +121,20 @@ public final class TransactionJournal {
         return next;
     }
 
+    /** Marks unfinished operations for human reconciliation; never replays external side effects. */
+    public synchronized int markIncompleteForReview() throws IOException {
+        int changed = 0;
+        for (Transaction transaction : List.copyOf(latest.values())) {
+            if (transaction.stage() == Stage.COMPLETE || transaction.stage() == Stage.ABORTED
+                    || transaction.stage() == Stage.NEEDS_REVIEW) {
+                continue;
+            }
+            advance(transaction.id(), Stage.NEEDS_REVIEW);
+            changed++;
+        }
+        return changed;
+    }
+
     public synchronized Transaction find(UUID transactionId) {
         return latest.get(transactionId);
     }
@@ -164,14 +179,14 @@ public final class TransactionJournal {
     }
 
     private static boolean allowed(Stage current, Stage next) {
-        if (current == Stage.COMPLETE || current == Stage.NEEDS_REVIEW) return false;
+        if (current == Stage.COMPLETE || current == Stage.ABORTED || current == Stage.NEEDS_REVIEW) return false;
         if (next == Stage.NEEDS_REVIEW) return true;
         return switch (current) {
-            case PREPARED -> next == Stage.BUYER_CHARGED;
+            case PREPARED -> next == Stage.BUYER_CHARGED || next == Stage.ABORTED;
             case BUYER_CHARGED -> next == Stage.ITEM_DELIVERED;
             case ITEM_DELIVERED -> next == Stage.SELLER_PAID;
             case SELLER_PAID -> next == Stage.COMPLETE;
-            case COMPLETE, NEEDS_REVIEW -> false;
+            case COMPLETE, ABORTED, NEEDS_REVIEW -> false;
         };
     }
 }

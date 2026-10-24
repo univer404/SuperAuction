@@ -29,6 +29,36 @@ class TransactionJournalSafetyTest {
     }
 
     @Test
+    void interruptedTransactionsAreMarkedForReviewAndNeverReplayed() throws IOException {
+        Path file = directory.resolve("interrupted.log");
+        TransactionJournal journal = new TransactionJournal(file);
+        journal.load();
+        var transaction = journal.begin(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 42.0);
+        journal.advance(transaction.id(), TransactionJournal.Stage.BUYER_CHARGED);
+
+        assertEquals(1, journal.markIncompleteForReview());
+        assertEquals(TransactionJournal.Stage.NEEDS_REVIEW, journal.find(transaction.id()).stage());
+        assertEquals(0, journal.markIncompleteForReview());
+        assertThrows(IllegalStateException.class,
+                () -> journal.advance(transaction.id(), TransactionJournal.Stage.ITEM_DELIVERED));
+
+        TransactionJournal reloaded = new TransactionJournal(file);
+        reloaded.load();
+        assertEquals(TransactionJournal.Stage.NEEDS_REVIEW, reloaded.find(transaction.id()).stage());
+    }
+
+    @Test
+    void allowsOnlyPreparedTransactionsToBeAborted() throws IOException {
+        TransactionJournal journal = new TransactionJournal(directory.resolve("abort.log"));
+        journal.load();
+        var transaction = journal.begin(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 12.0);
+        journal.advance(transaction.id(), TransactionJournal.Stage.ABORTED);
+        assertEquals(TransactionJournal.Stage.ABORTED, journal.find(transaction.id()).stage());
+        assertThrows(IllegalStateException.class,
+                () -> journal.advance(transaction.id(), TransactionJournal.Stage.BUYER_CHARGED));
+    }
+
+    @Test
     void refusesInvalidAmountsBeforeWritingAnything() throws IOException {
         Path file = directory.resolve("transactions.log");
         TransactionJournal journal = new TransactionJournal(file);

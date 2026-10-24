@@ -28,10 +28,13 @@ jobs:
           jar_file="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*' | head -n 1)"
           test -n "$jar_file"
           jar tf "$jar_file" | grep -qx 'plugin.yml'
-          jar tf "$jar_file" | grep -qx 'org/sqlite/JDBC.class'
-          echo "Verified plugin descriptor and bundled SQLite driver in $jar_file"
+          if jar tf "$jar_file" | grep -q '^org/sqlite/'; then
+            echo 'Unexpected SQLite driver found in YAML-only plugin JAR' >&2
+            exit 1
+          fi
+          echo "Verified plugin descriptor and no bundled database driver in $jar_file"
       - name: Upload verified plugin JAR
-        if: success() && github.event_name != 'pull_request'
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: SuperAuction-plugin
