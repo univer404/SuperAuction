@@ -24,6 +24,14 @@
             <repository>
             <id>placeholderapi</id>
             <url>https://repo.helpch.at/releases/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>placeholderapi-fallback</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
 </repositories>
     <dependencies>
