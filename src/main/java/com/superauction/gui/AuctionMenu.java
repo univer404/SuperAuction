@@ -258,7 +258,7 @@ public final class AuctionMenu implements Listener {
         Inventory preview = Bukkit.createInventory(new MenuHolder("shulker-preview", "", 0), menuSize(gui, "shulker-preview", 54),
                 color(menuTitle(gui, "shulker-preview", "&0Shulker Contents")));
         ItemStack[] contents = box.getInventory().getContents();
-        for (int slot = 0; slot < Math.min(27, contents.length); slot++) {
+        for (int slot = 0; slot < Math.min(preview.getSize(), Math.min(27, contents.length)); slot++) {
             ItemStack content = contents[slot];
             if (content != null && !content.getType().isAir()) preview.setItem(slot, content.clone());
         }
@@ -291,7 +291,7 @@ public final class AuctionMenu implements Listener {
     }
     private int menuSize(YamlConfiguration gui, String menu, int fallback) {
         int size = gui.getInt("menus." + menu + ".size", fallback);
-        return size >= 9 && size <= 54 && size % 9 == 0 ? size : fallback;
+        return size >= 18 && size <= 54 && size % 9 == 0 ? size : fallback;
     }
     private List<String> renderLore(YamlConfiguration gui, String path, List<String> fallback, Map<String,String> replacements) {
         List<String> lines = gui.contains(path) ? gui.getStringList(path) : fallback;
