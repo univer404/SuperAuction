@@ -1,8 +1,7 @@
 language: en
 
 storage:
-  # Supported: yaml or sqlite. MySQL is not implemented; unsupported values stop startup.
-  # SQLite uses plugins/SuperAuction/auctions.db and does not automatically import auctions.yml.
+  # SuperAuction uses YAML-only storage.
   type: yaml
   safe-fallback: false
 
