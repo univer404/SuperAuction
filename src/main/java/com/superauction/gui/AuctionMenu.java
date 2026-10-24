@@ -94,7 +94,7 @@ public final class AuctionMenu implements Listener {
             Map<String,String> values = Map.of("%quantity%", String.valueOf(hand.getAmount()),
                     "%price%", format(price), "%duration%", String.valueOf(plugin.getConfig().getLong("listings.default-duration-hours", 24)));
             meta.lore(renderLore(gui, "confirm-listing.preview-lore", List.of("&7Quantity: &f%quantity%", "&7Asking price: &a$%price%",
-                    "&7Seller fee: &fDisabled (0%)", "&7Net proceeds: &a$%price%", "&7Duration: &f%duration% hours"), values));
+                    "&7Seller fee: &fDisabled (0%)", "&7Net proceeds: &a$%price%", "&7Duration: &f%duration% hours"), values).stream().map(GuiText::component).toList());
             preview.setItemMeta(meta);
         }
         inv.setItem(menuSlot(gui, "confirm-listing.preview-slot", 13, inv.getSize()), preview);
@@ -113,7 +113,7 @@ public final class AuctionMenu implements Listener {
         int maxPage = Math.max(0, (listings.size() - 1) / pageSize);
         int safePage = Math.max(0, Math.min(page, maxPage));
         Inventory inventory = Bukkit.createInventory(new MenuHolder("mine", "", safePage), size,
-                color(menuTitle(gui, "mine", "&0My Auction Listings")));
+                GuiText.component(menuTitle(gui, "mine", "&0My Auction Listings")));
         for (int i=0; i<pageSize && safePage*pageSize+i<listings.size(); i++) {
             Listing listing=listings.get(safePage*pageSize+i);
             ItemStack icon=listing.item();
@@ -143,14 +143,14 @@ public final class AuctionMenu implements Listener {
         }
         YamlConfiguration gui = gui();
         Inventory inventory = Bukkit.createInventory(new MenuHolder("inspect", "", 0, id), menuSize(gui, "inspect", 27),
-                color(menuTitle(gui, "inspect", "&0Listing Details")));
+                GuiText.component(menuTitle(gui, "inspect", "&0Listing Details")));
         ItemStack icon=listing.item();
         ItemMeta meta=icon.getItemMeta();
         if(meta!=null){
             List<String> lore=meta.hasLore()&&meta.getLore()!=null?new ArrayList<>(meta.getLore()):new ArrayList<>();
             lore.addAll(renderLore(gui, "inspect.listing-lore", List.of("&7Seller: &f%seller%", "&7Price: &a$%price%", "&7Expires: &f%expires%"),
                     Map.of("%seller%", listing.sellerName(), "%price%", format(listing.price()), "%expires%", remaining(listing.expiresAt()))));
-            meta.setLore(lore); icon.setItemMeta(meta);
+            meta.lore(lore.stream().map(GuiText::component).toList()); icon.setItemMeta(meta);
         }
         inventory.setItem(menuSlot(gui, "inspect.preview-slot", 13, inventory.getSize()),icon);
         button(inventory,11,Material.LIME_CONCRETE,"&aPurchase","purchase",id.toString(),0);
@@ -258,7 +258,7 @@ public final class AuctionMenu implements Listener {
         }
         YamlConfiguration gui = gui();
         Inventory preview = Bukkit.createInventory(new MenuHolder("shulker-preview", "", 0), menuSize(gui, "shulker-preview", 54),
-                color(menuTitle(gui, "shulker-preview", "&0Shulker Contents")));
+                GuiText.component(menuTitle(gui, "shulker-preview", "&0Shulker Contents")));
         ItemStack[] contents = box.getInventory().getContents();
         for (int slot = 0; slot < Math.min(preview.getSize(), Math.min(27, contents.length)); slot++) {
             ItemStack content = contents[slot];
@@ -272,7 +272,7 @@ public final class AuctionMenu implements Listener {
         Listing listing=service.find(id);
         if(listing==null) {openMine(player,0);return;}
         YamlConfiguration gui = gui();
-        Inventory inv=Bukkit.createInventory(new MenuHolder("manage","",0,id),menuSize(gui,"manage",27),color(menuTitle(gui,"manage","&0Manage Listing")));
+        Inventory inv=Bukkit.createInventory(new MenuHolder("manage","",0,id),menuSize(gui,"manage",27),GuiText.component(menuTitle(gui,"manage","&0Manage Listing")));
         inv.setItem(menuSlot(gui, "manage.preview-slot", 13, inv.getSize()),listing.item());
         button(inv,11,Material.RED_CONCRETE,"&cCancel Listing","cancel-listing",id.toString(),0);
         button(inv,15,Material.ARROW,"&eBack","mine",null,0);
