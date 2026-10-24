@@ -43,12 +43,15 @@ public final class AuctionMenu implements Listener {
 
     public void openBrowse(Player player, String query, int page) {
         List<Listing> listings = service.activeListings(query);
-        int pageSize = Math.max(1, Math.min(45, plugin.getConfig().getInt("search.results-per-page", 45)));
+        YamlConfiguration gui = gui();
+        int inventorySize = menuSize(gui, "browse", 54);
+        int configuredContentSlots = gui.getInt("menus.browse.content-slots", 45);
+        int pageSize = Math.max(1, Math.min(Math.min(45, inventorySize - 9),
+                Math.min(configuredContentSlots, plugin.getConfig().getInt("search.results-per-page", 45))));
         int pages = Math.max(1, (int)Math.ceil(listings.size() / (double)pageSize));
         int safePage = Math.max(0, Math.min(page, pages - 1));
-        YamlConfiguration gui = gui();
         Inventory inventory = Bukkit.createInventory(new MenuHolder("browse", query, safePage),
-                menuSize(gui, "browse", 54), color(menuTitle(gui, "browse", "&0SuperAuction &8• &7%page%/%pages%")
+                inventorySize, color(menuTitle(gui, "browse", "&0SuperAuction &8• &7%page%/%pages%")
                 .replace("%page%", String.valueOf(safePage + 1)).replace("%pages%", String.valueOf(pages))));
         int start = safePage * pageSize;
         for (int i = 0; i < pageSize && start + i < listings.size(); i++) {
@@ -65,7 +68,7 @@ public final class AuctionMenu implements Listener {
                 meta.getPersistentDataContainer().set(listingKey, PersistentDataType.STRING, listing.id().toString());
                 icon.setItemMeta(meta);
             }
-            inventory.setItem(i, icon);
+            if (i < inventory.getSize() - 9) inventory.setItem(i, icon);
         }
         button(inventory, 45, Material.ARROW, "&ePrevious page", "previous", null, safePage);
         button(inventory, 48, Material.COMPASS, "&bSearch", "search", null, safePage);
@@ -299,8 +302,9 @@ public final class AuctionMenu implements Listener {
         YamlConfiguration gui = gui();
         String menu = inv.getHolder() instanceof MenuHolder holder ? holder.type : "";
         String path = "menus." + menu + ".buttons." + action;
-        int configuredSlot = gui.getInt(path + ".slot", slot);
-        if (configuredSlot < 0 || configuredSlot >= inv.getSize()) configuredSlot = slot;
+        int fallbackSlot = Math.max(0, Math.min(slot, inv.getSize() - 1));
+        int configuredSlot = gui.getInt(path + ".slot", fallbackSlot);
+        if (configuredSlot < 0 || configuredSlot >= inv.getSize()) configuredSlot = fallbackSlot;
         String configuredMaterial = gui.getString(path + ".material", material.name());
         Material parsed = Material.matchMaterial(configuredMaterial);
         if (parsed == null || !parsed.isItem()) parsed = material;
